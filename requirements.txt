@@ -1,4 +1,6 @@
 dash
-gunicorn
 pandas
 numpy
+plotly
+requests
+gunicorn
