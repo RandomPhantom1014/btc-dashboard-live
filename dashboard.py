@@ -1,7 +1,9 @@
+# dashboard.py
+
 import dash
 from dash import html
 
-# This must be named 'app' — gunicorn looks for this
+# This MUST be named exactly 'app'
 app = dash.Dash(__name__)
 
 app.layout = html.Div([
@@ -10,4 +12,5 @@ app.layout = html.Div([
     html.Div("Confidence: 73%"),
     html.Div("Signal Strength Meter: ██████░░░░"),
 ])
+
 
