@@ -9,6 +9,23 @@ def layout():
     return html.Div([
         html.H1("BTC Signal Dashboard", className="header-title"),
 
+        html.Div(
+            id='live-price-display',
+            children="Loading BTC Price...",
+            style={
+                'fontSize': '28px',
+                'color': '#00ffcc',
+                'marginBottom': '10px',
+                'fontWeight': 'bold'
+            }
+        ),
+
+        dcc.Interval(
+            id='price-update-interval',
+            interval=3000,
+            n_intervals=0
+        ),
+
         dcc.Graph(id='btc-price-chart'),
 
         html.Div([
@@ -85,3 +102,4 @@ def layout():
             n_intervals=0
         )
     ], id='main-container')
+
