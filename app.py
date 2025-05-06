@@ -1,4 +1,4 @@
-from full_btc_signal_dashboard import app
+from dashboard import app
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+if __name__ == "__main__":
+    app.run_server(debug=True, host="0.0.0.0", port=8080)
