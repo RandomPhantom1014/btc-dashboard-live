@@ -1,20 +1,25 @@
 # components/utils.py
 
-from datetime import datetime
+def format_price(value):
+    """Format price with commas and two decimal places."""
+    try:
+        return f"${float(value):,.2f}"
+    except (ValueError, TypeError):
+        return "$0.00"
 
-def format_timestamp(ts: float) -> str:
-    """Converts a UNIX timestamp to human-readable format."""
-    return datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S UTC')
-
-def get_signal_color(signal: str) -> str:
-    """Returns a CSS color class based on the signal type."""
-    if signal.lower() == 'go long':
-        return 'pill_go_long'
-    elif signal.lower() == 'go short':
-        return 'pill_go_short'
+def interpret_strength(confidence):
+    """Interpret signal strength based on confidence %."""
+    if confidence >= 80:
+        return "Strong"
+    elif confidence >= 60:
+        return "Moderate"
     else:
-        return 'pill_wait'
+        return "Weak"
 
-def truncate_price(value: float) -> str:
-    """Formats BTC price with commas and no decimals."""
-    return f"{int(value):,}"
+def color_for_strength(strength):
+    """Return color class based on signal strength label."""
+    return {
+        "Strong": "green",
+        "Moderate": "orange",
+        "Weak": "red"
+    }.get(strength, "gray")
