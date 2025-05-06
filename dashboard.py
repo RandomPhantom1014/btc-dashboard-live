@@ -1,100 +1,142 @@
 import dash
 from dash import html, dcc
-import dash_bootstrap_components as dbc
+from dash.dependencies import Input, Output
+import plotly.graph_objs as go
+import random
+import datetime
 
-layout = dbc.Container([
-    dbc.Row([
-        dbc.Col(html.H1("BTC Signal Dashboard", className="text-center mb-4"), width=12)
+# Initialize the Dash app
+app = dash.Dash(__name__)
+server = app.server
+
+# Simulated live price data
+def get_live_btc_price():
+    return round(93000 + random.uniform(-250, 250), 2)
+
+# Simulated RSI, MACD, Volume data
+def get_indicator_data():
+    return {
+        "rsi": round(random.uniform(30, 70), 2),
+        "macd": round(random.uniform(-5, 5), 2),
+        "volume": random.randint(5000, 20000)
+    }
+
+# Simulated signals
+def get_signals():
+    return {
+        "5m": ("Long", random.randint(60, 99)),
+        "10m": ("Hold", random.randint(50, 95)),
+        "15m": ("Short", random.randint(55, 90))
+    }
+
+# Simulated signal strength color
+def get_strength_color(conf):
+    if conf >= 85:
+        return "green"
+    elif conf >= 70:
+        return "orange"
+    else:
+        return "red"
+
+# Light/Dark toggle setup
+light_theme = {
+    "background": "#ffffff",
+    "text": "#000000"
+}
+dark_theme = {
+    "background": "#000000",
+    "text": "#00FFFF"
+}
+
+app.layout = html.Div(id="root", children=[
+    dcc.Interval(id="interval-update", interval=5 * 1000, n_intervals=0),
+    dcc.Store(id="theme", data="light"),
+
+    html.Div([
+        html.H1("BTC Signal Dashboard", id="title", style={"textAlign": "center"}),
+        html.Button("Toggle Theme", id="theme-toggle", n_clicks=0)
     ]),
-    
-    dbc.Row([
-        dbc.Col([
-            dcc.Graph(id="candlestick-chart", config={"displayModeBar": False})
-        ], width=12)
-    ]),
-    
-    dbc.Row([
-        dbc.Col([
-            html.Div("RSI", className="indicator-label"),
-            dcc.Graph(id="rsi-chart", config={"displayModeBar": False})
-        ], width=4),
-        dbc.Col([
-            html.Div("MACD", className="indicator-label"),
-            dcc.Graph(id="macd-chart", config={"displayModeBar": False})
-        ], width=4),
-        dbc.Col([
-            html.Div("Volume", className="indicator-label"),
-            dcc.Graph(id="volume-chart", config={"displayModeBar": False})
-        ], width=4)
-    ]),
-    
-    dbc.Row([
-        dbc.Col([
-            html.H5("5-Min Signal"),
-            html.Div(id="signal-5m"),
-            html.Div(id="confidence-5m"),
-            html.Div(id="price-5m")
-        ], width=4),
-        dbc.Col([
-            html.H5("10-Min Signal"),
-            html.Div(id="signal-10m"),
-            html.Div(id="confidence-10m"),
-            html.Div(id="price-10m")
-        ], width=4),
-        dbc.Col([
-            html.H5("15-Min Signal"),
-            html.Div(id="signal-15m"),
-            html.Div(id="confidence-15m"),
-            html.Div(id="price-15m")
-        ], width=4)
-    ]),
-    
-    dbc.Row([
-        dbc.Col([
-            html.Label("Mode:"),
-            dcc.RadioItems(
-                id="mode-toggle",
-                options=[
-                    {"label": "Live", "value": "live"},
-                    {"label": "Backtest", "value": "backtest"}
-                ],
-                value="live",
-                inline=True
-            )
-        ], width=6),
-        dbc.Col([
-            html.Label("Dark Mode:"),
-            dbc.Switch(id="theme-toggle", value=False, className="float-end")
-        ], width=6)
+
+    html.Div([
+        dcc.Graph(id="btc-price-chart")
+    ], style={"marginBottom": "30px"}),
+
+    html.Div(id="indicators"),
+
+    html.Div(id="signals")
+], style={"padding": "20px"})
+
+
+@app.callback(
+    Output("theme", "data"),
+    Input("theme-toggle", "n_clicks"),
+    prevent_initial_call=True
+)
+def toggle_theme(n):
+    return "dark" if n % 2 else "light"
+
+
+@app.callback(
+    Output("btc-price-chart", "figure"),
+    Output("indicators", "children"),
+    Output("signals", "children"),
+    Output("root", "style"),
+    Output("title", "style"),
+    Input("interval-update", "n_intervals"),
+    Input("theme", "data")
+)
+def update_dashboard(n, theme_mode):
+    price = get_live_btc_price()
+    indicators = get_indicator_data()
+    signals = get_signals()
+    theme = dark_theme if theme_mode == "dark" else light_theme
+
+    # BTC Price Chart
+    chart = go.Figure(data=[
+        go.Scatter(
+            x=[datetime.datetime.now()],
+            y=[price],
+            mode="lines+markers",
+            name="BTC Price"
+        )
     ])
-], fluid=True)
-
-def register_callbacks(app):
-    @app.callback(
-        dash.dependencies.Output("signal-5m", "children"),
-        dash.dependencies.Output("confidence-5m", "children"),
-        dash.dependencies.Output("price-5m", "children"),
-        dash.dependencies.Input("mode-toggle", "value")
+    chart.update_layout(
+        title="Live BTC Price",
+        paper_bgcolor=theme["background"],
+        plot_bgcolor=theme["background"],
+        font=dict(color=theme["text"]),
+        margin={"t": 40, "b": 40, "l": 40, "r": 40}
     )
-    def update_5m_signal(mode):
-        # Placeholder logic
-        return "Signal: Long", "Confidence: 72%", "Price Target: +$100"
 
-    @app.callback(
-        dash.dependencies.Output("signal-10m", "children"),
-        dash.dependencies.Output("confidence-10m", "children"),
-        dash.dependencies.Output("price-10m", "children"),
-        dash.dependencies.Input("mode-toggle", "value")
-    )
-    def update_10m_signal(mode):
-        return "Signal: Hold", "Confidence: 61%", "Price Target: $0"
+    # Indicators Display
+    indicators_html = html.Div([
+        html.Div(f"RSI: {indicators['rsi']}", style={"margin": "5px"}),
+        html.Div(f"MACD: {indicators['macd']}", style={"margin": "5px"}),
+        html.Div(f"Volume: {indicators['volume']}", style={"margin": "5px"})
+    ], style={"marginBottom": "20px", "color": theme["text"]})
 
-    @app.callback(
-        dash.dependencies.Output("signal-15m", "children"),
-        dash.dependencies.Output("confidence-15m", "children"),
-        dash.dependencies.Output("price-15m", "children"),
-        dash.dependencies.Input("mode-toggle", "value")
-    )
-    def update_15m_signal(mode):
-        return "Signal: Short", "Confidence: 68%", "Price Target: -$100"
+    # Signals Panel
+    signals_html = html.Div([
+        html.Div([
+            html.Div(f"{tf.upper()} - {signal[0]}", style={
+                "display": "inline-block",
+                "width": "150px",
+                "color": theme["text"]
+            }),
+            html.Div(f"Confidence: {signal[1]}%", style={
+                "backgroundColor": get_strength_color(signal[1]),
+                "color": "white",
+                "padding": "5px",
+                "borderRadius": "6px",
+                "display": "inline-block",
+                "marginLeft": "10px"
+            })
+        ]) for tf, signal in signals.items()
+    ], style={"color": theme["text"]})
+
+    return chart, indicators_html, signals_html, {"backgroundColor": theme["background"]}, {"color": theme["text"]}
+
+
+if __name__ == "__main__":
+    app.run_server(debug=True)
 
