@@ -1,4 +1,13 @@
-from dashboard import app
+import dash
+from dashboard import layout, register_callbacks
 
-if __name__ == "__main__":
-    app.run_server(debug=True, host="0.0.0.0", port=8080)
+app = dash.Dash(__name__, suppress_callback_exceptions=True)
+app.title = "BTC Signal Dashboard"
+app.layout = layout
+server = app.server
+
+register_callbacks(app)
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
+
