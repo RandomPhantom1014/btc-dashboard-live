@@ -1,29 +1,12 @@
-body {
-    background-color: #121212;
-    color: #ffffff;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+/* Theme Toggle and Signal Mode */
+#theme-toggle, #signal-mode {
+    margin-bottom: 10px;
 }
 
+/* Optional: Light mode card override if needed */
 .card {
-    background-color: #1e1e1e;
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    color: white;
+    transition: background-color 0.3s ease;
 }
 
-h1 {
-    font-weight: bold;
-    color: #00ffcc;
-}
-
-.card-header {
-    font-weight: bold;
-    background-color: #2c2c2c;
-    border-bottom: 1px solid #444;
-}
-
-.card-body {
-    font-size: 1.2rem;
-}
-
+/* Pill Styles already exist, no changes needed unless you want light versions */
 
