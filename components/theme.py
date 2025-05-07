@@ -1,18 +1,13 @@
 # components/theme.py
 
 LIGHT_THEME = {
-    "background": "#ffffff",
-    "text": "#000000",
-    "card": "#f8f9fa",
-    "accent": "#007bff"
+    "backgroundColor": "#ffffff",
+    "textColor": "#000000",
+    "cardColor": "#f8f9fa",
 }
 
 DARK_THEME = {
-    "background": "#121212",
-    "text": "#ffffff",
-    "card": "#1e1e1e",
-    "accent": "#0fffc1"
+    "backgroundColor": "#1e1e1e",
+    "textColor": "#ffffff",
+    "cardColor": "#2c2c2c",
 }
-
-def get_theme(mode):
-    return DARK_THEME if mode == "dark" else LIGHT_THEME
