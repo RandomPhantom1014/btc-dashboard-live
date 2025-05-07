@@ -1,25 +1,31 @@
 # components/utils.py
 
-def format_price(value):
-    """Format price with commas and two decimal places."""
+import requests
+import random
+
+def fetch_binance_price():
     try:
-        return f"${float(value):,.2f}"
-    except (ValueError, TypeError):
-        return "$0.00"
+        response = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT")
+        if response.status_code == 200:
+            return float(response.json()['price'])
+        else:
+            return None
+    except Exception as e:
+        print("Error fetching price:", e)
+        return None
 
-def interpret_strength(confidence):
-    """Interpret signal strength based on confidence %."""
-    if confidence >= 80:
-        return "Strong"
-    elif confidence >= 60:
-        return "Moderate"
-    else:
-        return "Weak"
-
-def color_for_strength(strength):
-    """Return color class based on signal strength label."""
+def simulate_signals():
     return {
-        "Strong": "green",
-        "Moderate": "orange",
-        "Weak": "red"
-    }.get(strength, "gray")
+        "5m": {
+            "signal": random.choice(["Long", "Short", "Hold"]),
+            "confidence": random.randint(70, 99)
+        },
+        "10m": {
+            "signal": random.choice(["Long", "Short", "Hold"]),
+            "confidence": random.randint(70, 99)
+        },
+        "15m": {
+            "signal": random.choice(["Long", "Short", "Hold"]),
+            "confidence": random.randint(70, 99)
+        }
+    }
