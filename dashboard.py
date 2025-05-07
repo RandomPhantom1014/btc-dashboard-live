@@ -1,94 +1,94 @@
-import dash
-from dash import dcc, html
+from dash import Input, Output, State
 import plotly.graph_objs as go
 import pandas as pd
 import random
-from datetime import datetime, timedelta
+from dash.exceptions import PreventUpdate
+from .utils import fetch_binance_price, simulate_signals
+from .indicators import calculate_rsi, calculate_macd, calculate_volume
 
-app = dash.Dash(__name__)
-server = app.server
 
-# Simulated signal generator
-def generate_signal_data():
-    return {
-        "5m": {"signal": random.choice(["Long", "Short", "Hold"]), "confidence": random.randint(70, 99)},
-        "10m": {"signal": random.choice(["Long", "Short", "Hold"]), "confidence": random.randint(70, 99)},
-        "15m": {"signal": random.choice(["Long", "Short", "Hold"]), "confidence": random.randint(70, 99)},
-    }
+def register_callbacks(app):
 
-# Simulated strength meter color logic
-def get_strength_color(confidence):
-    if confidence >= 90:
-        return "green"
-    elif confidence >= 80:
-        return "orange"
-    else:
-        return "red"
-
-# Simulated price data
-def generate_price_data():
-    now = datetime.now()
-    return pd.DataFrame({
-        "time": [now - timedelta(minutes=i) for i in range(50)],
-        "price": [50000 + random.randint(-300, 300) for _ in range(50)]
-    }).sort_values("time")
-
-signal_data = generate_signal_data()
-price_data = generate_price_data()
-
-# UI Layout
-app.layout = html.Div([
-    html.H1("BTC Signal Dashboard", style={"textAlign": "center"}),
-
-    dcc.Graph(
-        id="btc-chart",
-        figure={
-            "data": [
-                go.Candlestick(
-                    x=price_data["time"],
-                    open=price_data["price"],
-                    high=price_data["price"] + 50,
-                    low=price_data["price"] - 50,
-                    close=price_data["price"],
-                    name="BTC"
-                )
-            ],
-            "layout": go.Layout(
-                title="Live BTC Price Chart",
-                xaxis={"title": "Time"},
-                yaxis={"title": "Price (USD)"}
-            )
+    @app.callback(
+        Output('live-btc-price-chart', 'figure'),
+        Input('interval-component', 'n_intervals'),
+        prevent_initial_call=True
+    )
+    def update_price_chart(n):
+        price = fetch_binance_price()
+        if price is None:
+            raise PreventUpdate
+        return {
+            "data": [go.Scatter(x=[0], y=[price], mode='lines+markers', name='BTC/USDT')],
+            "layout": go.Layout(title='Live BTC Price', xaxis=dict(title='Time'), yaxis=dict(title='Price'))
         }
-    ),
 
-    html.Div([
-        html.Div([
-            html.H3("5-Minute Signal"),
-            html.Div([
-                html.Span(signal_data["5m"]["signal"], className="pill", style={"backgroundColor": get_strength_color(signal_data["5m"]["confidence"]), "padding": "5px 10px", "borderRadius": "10px", "color": "white"}),
-                html.Span(f"Confidence: {signal_data['5m']['confidence']}%", style={"marginLeft": "10px"})
-            ])
-        ], className="signal-box"),
+    @app.callback(
+        [
+            Output('signal-5m', 'children'),
+            Output('signal-10m', 'children'),
+            Output('signal-15m', 'children'),
+            Output('signal-strength', 'children')
+        ],
+        Input('interval-component', 'n_intervals'),
+        prevent_initial_call=True
+    )
+    def update_signals(n):
+        signals = simulate_signals()
 
-        html.Div([
-            html.H3("10-Minute Signal"),
-            html.Div([
-                html.Span(signal_data["10m"]["signal"], className="pill", style={"backgroundColor": get_strength_color(signal_data["10m"]["confidence"]), "padding": "5px 10px", "borderRadius": "10px", "color": "white"}),
-                html.Span(f"Confidence: {signal_data['10m']['confidence']}%", style={"marginLeft": "10px"})
-            ])
-        ], className="signal-box"),
+        strength = max([
+            signals['5m']['confidence'],
+            signals['10m']['confidence'],
+            signals['15m']['confidence']
+        ])
 
-        html.Div([
-            html.H3("15-Minute Signal"),
-            html.Div([
-                html.Span(signal_data["15m"]["signal"], className="pill", style={"backgroundColor": get_strength_color(signal_data["15m"]["confidence"]), "padding": "5px 10px", "borderRadius": "10px", "color": "white"}),
-                html.Span(f"Confidence: {signal_data['15m']['confidence']}%", style={"marginLeft": "10px"})
-            ])
-        ], className="signal-box")
-    ], style={"display": "grid", "gridTemplateColumns": "repeat(3, 1fr)", "gap": "20px", "margin": "20px"}),
+        strength_color = (
+            "🟢 Strong" if strength >= 90 else
+            "🟡 Moderate" if strength >= 80 else
+            "🔴 Weak"
+        )
 
-    html.Div("Mode: Live / Backtest", style={"textAlign": "center", "marginTop": "40px"})
-], style={"padding": "20px", "fontFamily": "Arial"})
+        return (
+            f"{signals['5m']['signal']} ({signals['5m']['confidence']}%)",
+            f"{signals['10m']['signal']} ({signals['10m']['confidence']}%)",
+            f"{signals['15m']['signal']} ({signals['15m']['confidence']}%)",
+            strength_color
+        )
 
+    @app.callback(
+        [
+            Output('rsi-chart', 'figure'),
+            Output('macd-chart', 'figure'),
+            Output('volume-chart', 'figure')
+        ],
+        Input('interval-component', 'n_intervals'),
+        prevent_initial_call=True
+    )
+    def update_indicator_charts(n):
+        price = fetch_binance_price()
+        if price is None:
+            raise PreventUpdate
 
+        # Simulate a small dummy DataFrame for indicators
+        df = pd.DataFrame({
+            "price": [price + random.uniform(-50, 50) for _ in range(100)],
+            "volume": [random.randint(100, 1000) for _ in range(100)]
+        })
+
+        rsi = calculate_rsi(df)
+        macd_line, signal_line = calculate_macd(df)
+        volume = calculate_volume(df)
+
+        rsi_fig = go.Figure(go.Scatter(y=rsi, mode="lines", name="RSI"))
+        rsi_fig.update_layout(title="RSI", height=200)
+
+        macd_fig = go.Figure()
+        macd_fig.add_trace(go.Scatter(y=macd_line, mode="lines", name="MACD"))
+        macd_fig.add_trace(go.Scatter(y=signal_line, mode="lines", name="Signal"))
+        macd_fig.update_layout(title="MACD", height=200)
+
+        volume_fig = go.Figure(go.Bar(y=volume, name="Volume"))
+        volume_fig.update_layout(title="Volume", height=200)
+
+        return rsi_fig, macd_fig, volume_fig
 
