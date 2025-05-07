@@ -14,7 +14,7 @@ card_style = {
 # Styles for signal strength pills based on confidence levels
 pill_styles = {
     "Strong": {
-        "backgroundColor": "#28a745",  # green
+        "backgroundColor": "#28a745",
         "color": "white",
         "borderRadius": "50px",
         "padding": "5px 15px",
@@ -22,7 +22,7 @@ pill_styles = {
         "display": "inline-block"
     },
     "Moderate": {
-        "backgroundColor": "#ffc107",  # yellow
+        "backgroundColor": "#ffc107",
         "color": "black",
         "borderRadius": "50px",
         "padding": "5px 15px",
@@ -30,7 +30,7 @@ pill_styles = {
         "display": "inline-block"
     },
     "Weak": {
-        "backgroundColor": "#dc3545",  # red
+        "backgroundColor": "#dc3545",
         "color": "white",
         "borderRadius": "50px",
         "padding": "5px 15px",
