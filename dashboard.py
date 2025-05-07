@@ -12,11 +12,10 @@ app.title = "BTC Signal Dashboard"
 app._favicon = "btc.ico"
 
 # Set the layout
-app.layout = create_layout(app)
+app.layout = create_layout()  # ✅ FIXED: Removed 'app' argument
 
 # Register all app callbacks
 register_callbacks(app)
 
 # Expose the app’s server for Render to find it
 server = app.server
-
