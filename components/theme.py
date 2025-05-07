@@ -1,13 +1,15 @@
 # components/theme.py
 
-LIGHT_THEME = {
-    "backgroundColor": "#ffffff",
-    "textColor": "#000000",
-    "cardColor": "#f8f9fa",
-}
+from dash import Input, Output, State, ctx
 
-DARK_THEME = {
-    "backgroundColor": "#1e1e1e",
-    "textColor": "#ffffff",
-    "cardColor": "#2c2c2c",
-}
+def register_theme_callbacks(app):
+    @app.callback(
+        Output("theme-container", "className"),
+        Input("theme-toggle", "n_clicks"),
+        State("theme-container", "className"),
+        prevent_initial_call=True
+    )
+    def toggle_theme(n, current_class):
+        if current_class == "light-mode":
+            return "dark-mode"
+        return "light-mode"
