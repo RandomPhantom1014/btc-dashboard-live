@@ -2,11 +2,12 @@
 
 from dash import html
 
-def strength_meter(strength_label, color):
+def render_strength_meter(timeframe_id):
     return html.Div(
+        id=f"strength-meter-{timeframe_id}",
         className="strength-meter",
         children=[
-            html.Span("Signal Strength:", className="meter-label"),
-            html.Span(strength_label, className="meter-value", style={"color": color})
+            html.Div(id=f"strength-label-{timeframe_id}", className="strength-label"),
+            html.Div(id=f"strength-bar-{timeframe_id}", className="strength-bar")
         ]
     )
