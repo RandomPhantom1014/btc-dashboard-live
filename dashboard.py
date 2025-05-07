@@ -3,7 +3,7 @@ import plotly.graph_objs as go
 import pandas as pd
 import random
 from dash.exceptions import PreventUpdate
-from .utils import fetch_binance_price, simulate_signals
+from components.utils import fetch_binance_price, simulate_signals
 from .indicators import calculate_rsi, calculate_macd, calculate_volume
 
 
