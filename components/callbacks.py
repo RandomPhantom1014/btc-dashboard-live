@@ -11,6 +11,7 @@ def fetch_mock_signals():
     return random.choice(signals), f"Confidence: {confidence}%", strength
 
 def register_callbacks(app):
+    # Live BTC price updater
     @app.callback(
         Output("live-btc-price", "children"),
         Input("interval-component", "n_intervals")
@@ -23,13 +24,34 @@ def register_callbacks(app):
         except:
             return "Error fetching price"
 
-    for timeframe in ["5m", "10m", "15m"]:
-        @app.callback(
-            Output(f"signal-{timeframe}", "children"),
-            Output(f"confidence-{timeframe}", "children"),
-            Output(f"strength-{timeframe}", "className"),
-            Input("interval-component", "n_intervals")
-        )
-        def update_signals(n, timeframe=timeframe):
-            signal, confidence, strength = fetch_mock_signals()
-            return signal, confidence, f"pill-{strength.lower()}"
+    # Individual callbacks per timeframe — must be separate
+    @app.callback(
+        Output("signal-5m", "children"),
+        Output("confidence-5m", "children"),
+        Output("strength-5m", "className"),
+        Input("interval-component", "n_intervals")
+    )
+    def update_5m(n):
+        signal, confidence, strength = fetch_mock_signals()
+        return signal, confidence, f"pill-{strength.lower()}"
+
+    @app.callback(
+        Output("signal-10m", "children"),
+        Output("confidence-10m", "children"),
+        Output("strength-10m", "className"),
+        Input("interval-component", "n_intervals")
+    )
+    def update_10m(n):
+        signal, confidence, strength = fetch_mock_signals()
+        return signal, confidence, f"pill-{strength.lower()}"
+
+    @app.callback(
+        Output("signal-15m", "children"),
+        Output("confidence-15m", "children"),
+        Output("strength-15m", "className"),
+        Input("interval-component", "n_intervals")
+    )
+    def update_15m(n):
+        signal, confidence, strength = fetch_mock_signals()
+        return signal, confidence, f"pill-{strength.lower()}"
+
