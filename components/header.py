@@ -2,17 +2,11 @@
 
 from dash import html
 
-def build_header():
+def render_header():
     return html.Div(
-        className="dashboard-header",
         children=[
-            html.H1("BTC Signal Dashboard", className="dashboard-title"),
-            html.Div(
-                className="mode-toggle",
-                children=[
-                    html.Label("Dark Mode"),
-                    html.Input(type="checkbox", id="theme-toggle", className="theme-toggle")
-                ]
-            )
-        ]
+            html.H1("BTC Signal Dashboard", className="header-title"),
+            html.Hr(className="header-divider")
+        ],
+        className="header-container"
     )
