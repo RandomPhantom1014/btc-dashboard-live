@@ -3,26 +3,37 @@
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 from components.styles import card_style
+from components.theme import DARK_THEME
 
 def create_layout():
     return dbc.Container([
         html.H1("BTC Signal Dashboard", className="text-center mb-4"),
 
-        # Toggle between Live and Backtest
         dbc.Row([
             dbc.Col([
-                dbc.Label("Signal Mode"),
-                dcc.RadioItems(
-                    id="mode-toggle",
+                html.Label("Theme"),
+                dcc.Dropdown(
+                    id="theme-toggle",
+                    options=[
+                        {"label": "Dark Mode", "value": "dark"},
+                        {"label": "Light Mode", "value": "light"}
+                    ],
+                    value="dark",
+                    clearable=False
+                )
+            ], width=2),
+            dbc.Col([
+                html.Label("Signal Mode"),
+                dcc.Dropdown(
+                    id="signal-mode",
                     options=[
                         {"label": "Live", "value": "live"},
                         {"label": "Backtest", "value": "backtest"}
                     ],
                     value="live",
-                    labelStyle={"display": "inline-block", "margin-right": "15px"},
-                    inputStyle={"margin-right": "5px"}
+                    clearable=False
                 )
-            ])
+            ], width=2),
         ], className="mb-3"),
 
         dbc.Row([
@@ -62,5 +73,5 @@ def create_layout():
         ]),
 
         dcc.Interval(id="interval-component", interval=5000, n_intervals=0)
-    ], fluid=True)
+    ], fluid=True, id="main-container")
 
