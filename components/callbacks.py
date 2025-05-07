@@ -1,7 +1,6 @@
 # components/callbacks.py
 
 from dash import Input, Output
-from .styles import light_theme, dark_theme
 from .indicators import calculate_rsi, calculate_macd, calculate_volume
 from .utils import fetch_binance_price, simulate_signals
 
