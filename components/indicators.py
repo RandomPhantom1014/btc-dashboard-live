@@ -1,20 +1,21 @@
+# components/indicators.py
+
 import pandas as pd
 
-def calculate_rsi(data, period=14):
-    delta = data['close'].diff()
+def calculate_rsi(df, period=14):
+    delta = df['close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
     rs = gain / loss
     rsi = 100 - (100 / (1 + rs))
     return rsi
 
-def calculate_macd(data, short_period=12, long_period=26, signal_period=9):
-    short_ema = data['close'].ewm(span=short_period, adjust=False).mean()
-    long_ema = data['close'].ewm(span=long_period, adjust=False).mean()
+def calculate_macd(df, short_window=12, long_window=26, signal_window=9):
+    short_ema = df['close'].ewm(span=short_window, adjust=False).mean()
+    long_ema = df['close'].ewm(span=long_window, adjust=False).mean()
     macd = short_ema - long_ema
-    signal = macd.ewm(span=signal_period, adjust=False).mean()
-    histogram = macd - signal
-    return macd, signal, histogram
+    signal = macd.ewm(span=signal_window, adjust=False).mean()
+    return macd, signal
 
-def calculate_volume_trend(data):
-    return data['volume'].rolling(window=14).mean()
+def calculate_volume(df):
+    return df['volume'] if 'volume' in df else [0 for _ in range(len(df))]
