@@ -1,26 +1,28 @@
 # components/utils.py
 
-import requests
-import random
+import csv
+import os
+from datetime import datetime
 
-def fetch_binance_price():
-    try:
-        url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
-        response = requests.get(url, timeout=5)
-        if response.status_code == 200:
-            return float(response.json()['price'])
-        else:
-            print("Binance API error:", response.status_code)
-            return None
-    except Exception as e:
-        print("Error fetching Binance price:", e)
-        return None
+LOG_FILE = "logs/signal_log.csv"
 
-def simulate_signals():
-    signals = {}
-    for tf in ["5m", "10m", "15m"]:
-        signals[tf] = {
-            "signal": random.choice(["Long", "Short", "Hold"]),
-            "confidence": random.randint(65, 99)
-        }
-    return signals
+def ensure_log_file_exists():
+    os.makedirs("logs", exist_ok=True)
+    if not os.path.isfile(LOG_FILE):
+        with open(LOG_FILE, mode="w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["timestamp", "timeframe", "signal", "confidence", "strength", "price"])
+
+def append_log(timeframe, signal, confidence, strength, price):
+    ensure_log_file_exists()
+    with open(LOG_FILE, mode="a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            timeframe,
+            signal,
+            confidence,
+            strength,
+            price
+        ])
+
