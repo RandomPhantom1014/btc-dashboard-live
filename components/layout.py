@@ -62,4 +62,3 @@ def create_layout():
         # Update interval
         dcc.Interval(id="interval-component", interval=5000, n_intervals=0)
     ], fluid=True)
-
