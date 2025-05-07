@@ -1,5 +1,3 @@
-# components/styles.py
-
 # Style for card layout
 card_style = {
     "backgroundColor": "#1e1e1e",
