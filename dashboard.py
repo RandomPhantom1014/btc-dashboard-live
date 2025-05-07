@@ -2,18 +2,13 @@
 
 import dash
 from dash import html
-import dash_bootstrap_components as dbc
 from components.layout import create_layout
-from components.callbacks import register_callbacks
-from components.theme import register_theme_callbacks
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-app.title = "BTC Signal Dashboard"
-app._favicon = "btc.ico"
+# Initialize the Dash app
+app = dash.Dash(__name__, suppress_callback_exceptions=True)
 
-app.layout = create_layout(app)
+# Set the layout using the function (no arguments needed)
+app.layout = create_layout()
 
-register_callbacks(app)
-register_theme_callbacks(app)
-
+# For deployment with gunicorn
 server = app.server
