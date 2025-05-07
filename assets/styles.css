@@ -1,12 +1,57 @@
-/* Theme Toggle and Signal Mode */
-#theme-toggle, #signal-mode {
-    margin-bottom: 10px;
+body {
+    background-color: #121212;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
 }
 
-/* Optional: Light mode card override if needed */
 .card {
-    transition: background-color 0.3s ease;
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    color: white;
+    border: 1px solid #333;
 }
 
-/* Pill Styles already exist, no changes needed unless you want light versions */
+h1, .card-title {
+    color: white;
+}
 
+.pill-strong {
+    background-color: #28a745;
+    color: white;
+}
+
+.pill-moderate {
+    background-color: #ffc107;
+    color: black;
+}
+
+.pill-weak {
+    background-color: #dc3545;
+    color: white;
+}
+
+.pill-container {
+    margin-top: 10px;
+    padding: 5px 15px;
+    font-weight: bold;
+    border-radius: 50px;
+    display: inline-block;
+}
+
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 15px;
+    }
+
+    .pill-container {
+        font-size: 0.9rem;
+        padding: 4px 12px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+}
