@@ -4,7 +4,7 @@ import pandas as pd
 import random
 from dash.exceptions import PreventUpdate
 from components.utils import fetch_binance_price, simulate_signals
-from .indicators import calculate_rsi, calculate_macd, calculate_volume
+from components.indicators import calculate_rsi, calculate_macd, calculate_volume
 
 
 def register_callbacks(app):
