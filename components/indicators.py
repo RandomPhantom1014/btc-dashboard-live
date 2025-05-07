@@ -1,35 +1,21 @@
 # components/indicators.py
 
-import pandas as pd
+from dash import html, dcc
+import plotly.graph_objs as go
 
-def calculate_rsi(df, period=14):
-    if 'close' not in df:
-        return [0] * len(df)
-    
-    delta = df['close'].diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-
-    avg_gain = gain.rolling(window=period, min_periods=1).mean()
-    avg_loss = loss.rolling(window=period, min_periods=1).mean()
-
-    rs = avg_gain / avg_loss.replace(to_replace=0, method='ffill')
-    rsi = 100 - (100 / (1 + rs))
-    return rsi.fillna(0)
-
-def calculate_macd(df, fast=12, slow=26, signal=9):
-    if 'close' not in df:
-        return [0] * len(df), [0] * len(df)
-
-    ema_fast = df['close'].ewm(span=fast, adjust=False).mean()
-    ema_slow = df['close'].ewm(span=slow, adjust=False).mean()
-    macd_line = ema_fast - ema_slow
-    signal_line = macd_line.ewm(span=signal, adjust=False).mean()
-
-    return macd_line.fillna(0), signal_line.fillna(0)
-
-def calculate_volume(df):
-    if 'volume' not in df:
-        return [0] * len(df)
-    return df['volume'].fillna(0)
+def render_indicators(rsi_data, macd_data, volume_data):
+    return html.Div([
+        html.Div([
+            html.H5("RSI Indicator"),
+            dcc.Graph(figure=go.Figure(go.Scatter(y=rsi_data, name="RSI")))
+        ]),
+        html.Div([
+            html.H5("MACD Indicator"),
+            dcc.Graph(figure=go.Figure(go.Scatter(y=macd_data, name="MACD")))
+        ]),
+        html.Div([
+            html.H5("Volume"),
+            dcc.Graph(figure=go.Figure(go.Bar(y=volume_data, name="Volume")))
+        ])
+    ])
 
