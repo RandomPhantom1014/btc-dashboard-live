@@ -38,3 +38,4 @@ pill_styles = {
         "display": "inline-block"
     }
 }
+
