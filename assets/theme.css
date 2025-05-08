@@ -1,0 +1,79 @@
+/* === Base Styles === */
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.main-container {
+    padding: 20px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* === Light Mode === */
+.light .main-container {
+    background-color: #f9f9f9;
+    color: #222;
+}
+
+.light .chart-container,
+.light .indicators-container,
+.light .signal-row,
+.light .mode-toggle,
+.light .theme-toggle,
+.light .export-container,
+.light .log-toggle {
+    background-color: #ffffff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+}
+
+/* === Dark Mode === */
+.dark .main-container {
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+.dark .chart-container,
+.dark .indicators-container,
+.dark .signal-row,
+.dark .mode-toggle,
+.dark .theme-toggle,
+.dark .export-container,
+.dark .log-toggle {
+    background-color: #1e1e1e;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 0 10px #00ffff33;
+}
+
+/* Neon Accents for Signals */
+.dark .signal-pill {
+    background-color: #00ffff22;
+    color: #00ffff;
+    font-weight: bold;
+    padding: 8px 12px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.dark .confidence,
+.dark .strength-meter {
+    color: #88eaff;
+}
+
+/* === Theme Toggle Radio Styling (Optional Enhancements) === */
+.theme-toggle label {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+/* Smooth visual transitions */
+.chart-container,
+.indicators-container,
+.signal-row {
+    transition: all 0.3s ease-in-out;
+}
