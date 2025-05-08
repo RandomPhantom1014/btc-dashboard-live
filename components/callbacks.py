@@ -5,7 +5,7 @@ from dash.exceptions import PreventUpdate
 from components.live_price import fetch_live_btc_price
 from components.chart import render_candlestick_chart
 from components.indicators import render_indicators
-from utils.data import get_btc_data
+from utils.data import get_btc_data, get_backtest_data
 from utils.indicators import calculate_rsi, calculate_macd, calculate_volume_strength
 
 previous_price = None
@@ -43,15 +43,15 @@ def register_callbacks(app):
             }
         ]
 
-    # ========== CHART + INDICATORS ==========
-
+    # ========== CHART + INDICATORS TOGGLE (LIVE vs BACKTEST) ==========
     @app.callback(
         Output("candlestick-chart", "figure"),
         Output("indicators-container", "children"),
-        Input("interval-component", "n_intervals")
+        Input("interval-component", "n_intervals"),
+        State("mode-toggle", "value")
     )
-    def update_chart_and_indicators(n_intervals):
-        df = get_btc_data()
+    def update_chart_and_indicators(n_intervals, mode):
+        df = get_backtest_data() if mode == "backtest" else get_btc_data()
         if df.empty:
             raise PreventUpdate
 
@@ -68,7 +68,7 @@ def register_callbacks(app):
 
         return chart_fig, indicators
 
-    # ========== SIGNAL GENERATION HELPERS ==========
+    # ========== SIGNAL ENGINE ==========
     def generate_signal(df):
         rsi = calculate_rsi(df).iloc[-1]
         macd_line, signal_line, _ = calculate_macd(df)
@@ -94,7 +94,6 @@ def register_callbacks(app):
         return signal, f"Confidence: {confidence}%", f"Strength: {strength}/10"
 
     # ========== SIGNAL CALLBACKS ==========
-
     @app.callback(
         Output("signal-5m", "children"),
         Output("confidence-5m", "children"),
@@ -103,11 +102,10 @@ def register_callbacks(app):
         State("mode-toggle", "value")
     )
     def update_signal_5m(n, mode):
-        df = get_btc_data()
+        df = get_backtest_data() if mode == "backtest" else get_btc_data()
         if df.empty:
             raise PreventUpdate
-        df_5m = df.tail(5)
-        return generate_signal(df_5m)
+        return generate_signal(df.tail(5))
 
     @app.callback(
         Output("signal-10m", "children"),
@@ -117,11 +115,10 @@ def register_callbacks(app):
         State("mode-toggle", "value")
     )
     def update_signal_10m(n, mode):
-        df = get_btc_data()
+        df = get_backtest_data() if mode == "backtest" else get_btc_data()
         if df.empty:
             raise PreventUpdate
-        df_10m = df.tail(10)
-        return generate_signal(df_10m)
+        return generate_signal(df.tail(10))
 
     @app.callback(
         Output("signal-15m", "children"),
@@ -131,10 +128,7 @@ def register_callbacks(app):
         State("mode-toggle", "value")
     )
     def update_signal_15m(n, mode):
-        df = get_btc_data()
+        df = get_backtest_data() if mode == "backtest" else get_btc_data()
         if df.empty:
             raise PreventUpdate
-        df_15m = df.tail(15)
-        return generate_signal(df_15m)
-
-
+        return generate_signal(df.tail(15))
