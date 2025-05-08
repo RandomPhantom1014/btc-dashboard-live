@@ -1,7 +1,11 @@
 # callbacks.py
 
 from dash import Input, Output, State
+from dash.exceptions import PreventUpdate
 from components.live_price import fetch_live_btc_price
+from components.chart import render_candlestick_chart
+from components.indicators import render_indicators
+from utils.data import get_btc_data  # Make sure this returns a clean DataFrame
 
 previous_price = None  # To track price changes between intervals
 
@@ -37,14 +41,18 @@ def register_callbacks(app):
             }
         ]
 
-    # Placeholder: Update signals if desired
-    # @app.callback(
-    #     Output("signal-5m", "children"),
-    #     Output("confidence-5m", "children"),
-    #     Input("interval-component", "n_intervals"),
-    #     State("mode-toggle", "value")
-    # )
-    # def update_signal_5m(n, mode):
-    #     return "Go Long", "Confidence: 87%"
+    # 🔁 Update Chart and Indicators on Interval
+    @app.callback(
+        Output("candlestick-chart", "figure"),
+        Output("indicators-container", "children"),
+        Input("interval-component", "n_intervals")
+    )
+    def update_chart_and_indicators(n_intervals):
+        df = get_btc_data()
+        if df is None or df.empty:
+            raise PreventUpdate
 
-    # Repeat similar logic for 10m and 15m signals if needed
+        chart_fig = render_candlestick_chart(df)
+        indicators = render_indicators(df)
+
+        return chart_fig, indicators
