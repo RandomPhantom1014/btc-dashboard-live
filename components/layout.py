@@ -6,93 +6,80 @@ from dash import html, dcc
 import pandas as pd
 
 from components.header import render_header
-from components.chart import render_candlestick_chart
-from components.indicators import render_indicators
-from components.strength_meter import render_strength_meter
 
-def create_layout(theme="light"):
-    return dbc.Container(
-        [
-            dcc.Location(id="url", refresh=False),
-            dcc.Interval(id="interval-component", interval=10*1000, n_intervals=0),
+def create_layout():
+    return dbc.Container([
+        dcc.Interval(id="interval-component", interval=15 * 1000, n_intervals=0),
 
-            render_header(),
+        # Header
+        render_header(),
 
-            html.Div(id="live-btc-price", className="live-price"),
-
-            html.Div(
-                dcc.Graph(id="candlestick-chart"),
-                className="chart-container"
-            ),
-
-            html.Div(
-                id="indicators-container",
-                className="indicators-container"
-            ),
-
-            html.Div(
-                [
-                    html.Label("Signal Mode:"),
-                    dcc.RadioItems(
-                        id="mode-toggle",
-                        options=[
-                            {"label": "Live", "value": "live"},
-                            {"label": "Backtest", "value": "backtest"},
-                        ],
-                        value="live",
-                        inline=True
-                    )
+        # Theme Toggle
+        html.Div([
+            html.Label("Theme:"),
+            dcc.RadioItems(
+                id="theme-toggle",
+                options=[
+                    {"label": "Light", "value": "light"},
+                    {"label": "Dark", "value": "dark"},
                 ],
-                className="mode-toggle"
+                value="light",
+                inline=True,
+                labelStyle={"margin-right": "15px"}
             ),
+        ], className="theme-toggle"),
 
-            # === Signal Outputs ===
-            html.Div([
-                dbc.Row([
-                    dbc.Col(html.Div("5 Minute Signal", className="timeframe-title"), width=12),
-                    dbc.Col(html.Div(id="signal-5m", className="signal-pill"), width=4),
-                    dbc.Col(html.Div(id="confidence-5m", className="confidence"), width=4),
-                    dbc.Col(html.Div(render_strength_meter("5m"), id="strength-5m"), width=4),
-                ], className="signal-row"),
-
-                dbc.Row([
-                    dbc.Col(html.Div("10 Minute Signal", className="timeframe-title"), width=12),
-                    dbc.Col(html.Div(id="signal-10m", className="signal-pill"), width=4),
-                    dbc.Col(html.Div(id="confidence-10m", className="confidence"), width=4),
-                    dbc.Col(html.Div(render_strength_meter("10m"), id="strength-10m"), width=4),
-                ], className="signal-row"),
-
-                dbc.Row([
-                    dbc.Col(html.Div("15 Minute Signal", className="timeframe-title"), width=12),
-                    dbc.Col(html.Div(id="signal-15m", className="signal-pill"), width=4),
-                    dbc.Col(html.Div(id="confidence-15m", className="confidence"), width=4),
-                    dbc.Col(html.Div(render_strength_meter("15m"), id="strength-15m"), width=4),
-                ], className="signal-row"),
-            ]),
-
-            html.Div(
-                dbc.Button("Export CSV", id="export-button", color="primary", className="mt-3"),
-                className="export-container"
+        # Mode Toggle
+        html.Div([
+            html.Label("Signal Mode:"),
+            dcc.RadioItems(
+                id="signal-mode",
+                options=[
+                    {"label": "Live", "value": "live"},
+                    {"label": "Backtest", "value": "backtest"},
+                ],
+                value="backtest",
+                inline=True,
+                labelStyle={"margin-right": "15px"}
             ),
+        ], className="mode-toggle"),
 
-            html.Div(
-                dbc.Checkbox(id="save-logs-toggle", className="mt-2", value=False),
-                className="log-toggle"
-            ),
+        # Live BTC Price Display
+        html.Div(id="live-btc-price", className="live-price"),
 
-            html.Div([
-                html.Label("Theme:"),
-                dcc.RadioItems(
-                    id="theme-toggle",
-                    options=[
-                        {"label": "Light", "value": "light"},
-                        {"label": "Dark", "value": "dark"}
-                    ],
-                    value="light",
-                    inline=True
-                )
-            ], className="theme-toggle")
-        ],
-        fluid=True,
-        className=f"{theme} main-container"
-    )
+        # Candlestick Chart
+        html.Div([
+            dcc.Graph(id="candlestick-chart", config={"displayModeBar": False}),
+        ], className="chart-container"),
+
+        # Signal Output: 5 Minute
+        html.Div([
+            html.H5("5 Minute Signal"),
+            html.Div(id="five-min-signal", className="signal-pill")
+        ], className="signal-section"),
+
+        # Signal Output: 10 Minute
+        html.Div([
+            html.H5("10 Minute Signal"),
+            html.Div(id="ten-min-signal", className="signal-pill")
+        ], className="signal-section"),
+
+        # Signal Output: 15 Minute
+        html.Div([
+            html.H5("15 Minute Signal"),
+            html.Div(id="fifteen-min-signal", className="signal-pill")
+        ], className="signal-section"),
+
+        # CSV Export
+        html.Div(
+            dbc.Button("Export CSV", id="export-button", color="primary", className="mt-3"),
+            className="export-container"
+        ),
+
+        # Log Saving Toggle
+        html.Div(
+            dbc.Checkbox(id="save-logs-toggle", value=False, className="mt-2"),
+            className="log-toggle"
+        )
+    ], fluid=True, className="main-container")
+
