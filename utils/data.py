@@ -1,11 +1,10 @@
 import csv
 import os
 from datetime import datetime
-
 import pandas as pd
 import requests
 
-# ====== LOGGING FUNCTIONS ======
+# ====== LOGGING SETUP ======
 LOG_FILE = "logs/signal_log.csv"
 
 def ensure_log_file_exists():
@@ -28,13 +27,13 @@ def append_log(timeframe, signal, confidence, strength, price):
             price
         ])
 
-# ====== BTC DATA FETCH FUNCTION ======
+# ====== LIVE DATA FETCH (from Binance) ======
 def get_btc_data():
     url = "https://api.binance.com/api/v3/klines"
     params = {
         "symbol": "BTCUSDT",
-        "interval": "1m",  # 1-minute candles
-        "limit": 100       # Get last 100 minutes of data
+        "interval": "1m",
+        "limit": 100
     }
 
     try:
@@ -50,11 +49,21 @@ def get_btc_data():
 
         df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
         df.set_index("timestamp", inplace=True)
-
         df = df[["open", "high", "low", "close", "volume"]].astype(float)
+
         return df
 
     except Exception as e:
-        print(f"Error fetching BTC data: {e}")
+        print(f"Error fetching live BTC data: {e}")
         return pd.DataFrame()
 
+# ====== BACKTEST DATA LOADER ======
+def get_backtest_data():
+    try:
+        df = pd.read_csv("data/backtest_btc.csv", parse_dates=["timestamp"])
+        df.set_index("timestamp", inplace=True)
+        df = df[["open", "high", "low", "close", "volume"]].astype(float)
+        return df
+    except Exception as e:
+        print(f"Error loading backtest data: {e}")
+        return pd.DataFrame()
