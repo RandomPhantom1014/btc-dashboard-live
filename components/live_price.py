@@ -4,12 +4,13 @@ import requests
 
 def fetch_live_btc_price():
     try:
-        response = requests.get(
-            "https://api.coingecko.com/api/v3/simple/price",
-            params={"ids": "bitcoin", "vs_currencies": "usd"},
-            timeout=5
-        )
+        url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+        response = requests.get(url, timeout=5)
         data = response.json()
-        return f"${data['bitcoin']['usd']:,}"
+        price = data.get("bitcoin", {}).get("usd")
+        if price is None:
+            raise ValueError("BTC price not found in API response")
+        return float(price)
     except Exception as e:
-        return "Price unavailable"
+        print(f"Error fetching price: {e}")
+        return None
