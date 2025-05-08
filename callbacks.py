@@ -167,4 +167,3 @@ def register_callbacks(app):
     def switch_theme(theme):
         return f"/?theme={theme}"
 
-
