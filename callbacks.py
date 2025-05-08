@@ -50,7 +50,7 @@ def register_callbacks(app):
                 "type": "span",
                 "props": {
                     "style": {"color": color, "fontWeight": "bold"},
-                    "children": f"${current_price:,.2f}"
+                    "children": f"${float(current_price):,.2f}"
                 }
             }
         ]
@@ -62,13 +62,11 @@ def register_callbacks(app):
         State("mode-toggle", "value")
     )
     def update_chart_and_indicators(n, mode):
-        df = get_btc_data()
-        if df is None or df.empty:
+        df = get_btc_data(mode)
+        if df.empty:
             raise PreventUpdate
-
         fig = render_candlestick_chart(df)
         indicators = render_indicators(df)
-
         return fig, indicators
 
     @app.callback(
@@ -82,16 +80,16 @@ def register_callbacks(app):
         State("mode-toggle", "value")
     )
     def update_signals(n, mode):
-        df = get_btc_data()
-        if df is None or df.empty:
+        df = get_btc_data(mode)
+        if df.empty:
             raise PreventUpdate
 
-        df = df.copy()
         df.index = pd.to_datetime(df.index)
 
-        signal_5m, conf_5m, _ = generate_signals(df, '5T')
-        signal_10m, conf_10m, _ = generate_signals(df, '10T')
-        signal_15m, conf_15m, _ = generate_signals(df, '15T')
+        s5, c5, _ = generate_signals(df, '5min')
+        s10, c10, _ = generate_signals(df, '10min')
+        s15, c15, _ = generate_signals(df, '15min')
 
-        return signal_5m, conf_5m, signal_10m, conf_10m, signal_15m, conf_15m
+        return s5, c5, s10, c10, s15, c15
+
 
