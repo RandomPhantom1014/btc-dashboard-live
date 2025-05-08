@@ -9,9 +9,9 @@ from utils.data import get_btc_data, get_backtest_data, append_log
 from utils.indicators import calculate_rsi, calculate_macd, calculate_volume_strength
 import os
 
-previous_price = None
-
 def register_callbacks(app):
+
+    previous_price = None  # Shared inside function scope
 
     # ========== LIVE BTC PRICE ==========
     @app.callback(
@@ -19,7 +19,7 @@ def register_callbacks(app):
         Input("interval-component", "n_intervals")
     )
     def update_btc_price(n_intervals):
-        global previous_price
+        nonlocal previous_price
         current_price = fetch_live_btc_price()
 
         if current_price is None:
@@ -69,9 +69,8 @@ def register_callbacks(app):
 
         return chart_fig, indicators
 
-    # ========== SIGNAL ENGINE W/ PRICE TARGET LOGIC ==========
+    # ========== SIGNAL ENGINE ==========
     def generate_signal(df):
-        # Measure actual price change
         price_start = df["close"].iloc[0]
         price_end = df["close"].iloc[-1]
         price_change = price_end - price_start
@@ -88,14 +87,12 @@ def register_callbacks(app):
         confidence = 50
         strength = 5
 
-        # Require at least $100 move
         if abs(price_change) >= 100:
             if price_change > 0:
                 signal = "Go Long"
             else:
                 signal = "Go Short"
 
-            # Boost confidence if indicators align
             indicator_score = 0
             if signal == "Go Long" and rsi < 35 and macd_current > signal_current and macd_prev < signal_prev:
                 indicator_score += 2
@@ -178,3 +175,11 @@ def register_callbacks(app):
         else:
             raise PreventUpdate
 
+    # ========== THEME TOGGLE ==========
+    @app.callback(
+        Output("url", "href"),
+        Input("theme-toggle", "value"),
+        prevent_initial_call=True
+    )
+    def switch_theme(theme):
+        return f"/?theme={theme}"
