@@ -1,79 +1,99 @@
-/* === Base Styles === */
-body, html {
+/* === BASE === */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f9f9f9;
+    color: #111;
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', sans-serif;
 }
 
 .main-container {
     padding: 20px;
-    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* === Light Mode === */
-.light .main-container {
-    background-color: #f9f9f9;
-    color: #222;
-}
-
-.light .chart-container,
-.light .indicators-container,
-.light .signal-row,
-.light .mode-toggle,
-.light .theme-toggle,
-.light .export-container,
-.light .log-toggle {
-    background-color: #ffffff;
-    border-radius: 10px;
-    padding: 15px;
+/* === HEADER === */
+.header-title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 600;
     margin-bottom: 10px;
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
 }
 
-/* === Dark Mode === */
-.dark .main-container {
-    background-color: #121212;
-    color: #e0e0e0;
+.header-container {
+    padding-bottom: 10px;
 }
 
-.dark .chart-container,
-.dark .indicators-container,
-.dark .signal-row,
-.dark .mode-toggle,
-.dark .theme-toggle,
-.dark .export-container,
-.dark .log-toggle {
-    background-color: #1e1e1e;
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 10px;
-    box-shadow: 0 0 10px #00ffff33;
+/* === PRICE DISPLAY === */
+.live-price {
+    font-size: 20px;
+    margin-top: 10px;
+    text-align: center;
 }
 
-/* Neon Accents for Signals */
-.dark .signal-pill {
-    background-color: #00ffff22;
-    color: #00ffff;
+/* === CHART === */
+.chart-container {
+    margin-top: 20px;
+}
+
+/* === SIGNAL BLOCKS === */
+.signal-section {
+    background-color: #e3e3e3;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 15px;
+    text-align: center;
+    font-size: 18px;
     font-weight: bold;
-    padding: 8px 12px;
-    border-radius: 20px;
+}
+
+.signal-pill {
+    padding: 8px 15px;
     display: inline-block;
+    border-radius: 5px;
+    margin-top: 8px;
 }
 
-.dark .confidence,
-.dark .strength-meter {
-    color: #88eaff;
+/* === TOGGLES === */
+.mode-toggle, .theme-toggle, .log-toggle, .export-container {
+    margin-top: 20px;
+    text-align: center;
 }
 
-/* === Theme Toggle Radio Styling (Optional Enhancements) === */
-.theme-toggle label {
-    font-weight: bold;
-    margin-right: 10px;
+/* === DARK MODE === */
+body.dark {
+    background-color: #111;
+    color: #eee;
 }
 
-/* Smooth visual transitions */
-.chart-container,
-.indicators-container,
-.signal-row {
-    transition: all 0.3s ease-in-out;
+body.dark .header-title {
+    color: #fff;
+}
+
+body.dark .signal-section {
+    background-color: #222;
+    color: #ddd;
+}
+
+body.dark .signal-pill {
+    background-color: #333;
+    color: #fff;
+}
+
+body.dark .live-price {
+    color: #0f0;
+}
+
+body.dark .chart-container {
+    border: 1px solid #333;
+}
+
+/* === RESPONSIVE === */
+@media screen and (max-width: 768px) {
+    .signal-section {
+        font-size: 16px;
+    }
+
+    .live-price {
+        font-size: 18px;
+    }
 }
