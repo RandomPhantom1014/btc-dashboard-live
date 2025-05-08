@@ -3,6 +3,8 @@
 import dash
 import dash_bootstrap_components as dbc
 from dash import html, dcc
+import pandas as pd  # Needed for the empty DataFrame
+
 from components.header import render_header
 from components.chart import render_candlestick_chart
 from components.indicators import render_indicators
@@ -19,8 +21,8 @@ def create_layout():
             # Live BTC Price
             html.Div(id="live-btc-price", className="live-price"),
 
-            # Candlestick Chart
-            html.Div(render_candlestick_chart(), className="chart-container"),
+            # Candlestick Chart with empty DataFrame for safe render
+            html.Div(render_candlestick_chart(pd.DataFrame()), className="chart-container"),
 
             # RSI, MACD, Volume Indicators
             html.Div(render_indicators(), className="indicators-container"),
