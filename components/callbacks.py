@@ -5,14 +5,14 @@ from dash.exceptions import PreventUpdate
 from components.live_price import fetch_live_btc_price
 from components.chart import render_candlestick_chart
 from components.indicators import render_indicators
-from utils.data import get_btc_data  # Make sure this returns a clean DataFrame
+from utils.data import get_btc_data
+from utils.indicators import calculate_rsi, calculate_macd, calculate_volume_strength
 
-previous_price = None  # To track price changes between intervals
+previous_price = None
 
 def register_callbacks(app):
 
     # ========== LIVE BTC PRICE ==========
-
     @app.callback(
         Output("live-btc-price", "children"),
         Input("interval-component", "n_intervals")
@@ -52,15 +52,48 @@ def register_callbacks(app):
     )
     def update_chart_and_indicators(n_intervals):
         df = get_btc_data()
-        if df is None or df.empty:
+        if df.empty:
             raise PreventUpdate
 
         chart_fig = render_candlestick_chart(df)
-        indicators = render_indicators(df)
+        rsi = calculate_rsi(df)
+        macd_line, _, _ = calculate_macd(df)
+        volume = df["volume"]
+
+        indicators = render_indicators(
+            rsi_data=rsi[-30:].tolist(),
+            macd_data=macd_line[-30:].tolist(),
+            volume_data=volume[-30:].tolist()
+        )
 
         return chart_fig, indicators
 
-    # ========== SIGNAL PLACEHOLDER CALLBACKS ==========
+    # ========== SIGNAL GENERATION HELPERS ==========
+    def generate_signal(df):
+        rsi = calculate_rsi(df).iloc[-1]
+        macd_line, signal_line, _ = calculate_macd(df)
+        macd_current = macd_line.iloc[-1]
+        macd_prev = macd_line.iloc[-2]
+        signal_current = signal_line.iloc[-1]
+        signal_prev = signal_line.iloc[-2]
+        volume_strength = calculate_volume_strength(df).iloc[-1]
+
+        signal = "Wait"
+        confidence = 50
+        strength = 5
+
+        if rsi < 30 and macd_current > signal_current and macd_prev < signal_prev:
+            signal = "Go Long"
+            confidence = 80
+            strength = 8 if volume_strength > 1 else 6
+        elif rsi > 70 and macd_current < signal_current and macd_prev > signal_prev:
+            signal = "Go Short"
+            confidence = 80
+            strength = 8 if volume_strength > 1 else 6
+
+        return signal, f"Confidence: {confidence}%", f"Strength: {strength}/10"
+
+    # ========== SIGNAL CALLBACKS ==========
 
     @app.callback(
         Output("signal-5m", "children"),
@@ -70,10 +103,11 @@ def register_callbacks(app):
         State("mode-toggle", "value")
     )
     def update_signal_5m(n, mode):
-        signal = "Go Long" if n % 2 == 0 else "Go Short"
-        confidence = f"Confidence: {85 + (n % 5)}%"
-        strength = f"Strength: {(n % 10) + 1}/10"
-        return signal, confidence, strength
+        df = get_btc_data()
+        if df.empty:
+            raise PreventUpdate
+        df_5m = df.tail(5)
+        return generate_signal(df_5m)
 
     @app.callback(
         Output("signal-10m", "children"),
@@ -83,10 +117,11 @@ def register_callbacks(app):
         State("mode-toggle", "value")
     )
     def update_signal_10m(n, mode):
-        signal = "Wait" if n % 3 == 0 else "Go Long"
-        confidence = f"Confidence: {75 + (n % 10)}%"
-        strength = f"Strength: {(n % 5) + 3}/10"
-        return signal, confidence, strength
+        df = get_btc_data()
+        if df.empty:
+            raise PreventUpdate
+        df_10m = df.tail(10)
+        return generate_signal(df_10m)
 
     @app.callback(
         Output("signal-15m", "children"),
@@ -96,8 +131,10 @@ def register_callbacks(app):
         State("mode-toggle", "value")
     )
     def update_signal_15m(n, mode):
-        signal = "Go Short" if n % 4 == 0 else "Wait"
-        confidence = f"Confidence: {65 + (n % 15)}%"
-        strength = f"Strength: {(n % 7) + 2}/10"
-        return signal, confidence, strength
+        df = get_btc_data()
+        if df.empty:
+            raise PreventUpdate
+        df_15m = df.tail(15)
+        return generate_signal(df_15m)
+
 
