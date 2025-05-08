@@ -1,12 +1,9 @@
-dash==3.0.4
+dash==2.16.1
 dash-bootstrap-components==1.5.0
-plotly>=5.0.0
-pandas>=2.2.3
-numpy>=2.2.5
-requests>=2.32.3
-gunicorn>=23.0.0
-Flask>=3.0.3
-websockets>=11.0.3
+pandas==2.2.2
+plotly==5.21.0
+requests==2.31.0
+gunicorn==21.2.0
 
 
 
