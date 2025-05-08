@@ -1,6 +1,6 @@
 # callbacks.py
 
-from dash import Input, Output, State, ctx, dcc
+from dash import Input, Output, State, dcc
 from dash.exceptions import PreventUpdate
 from components.live_price import fetch_live_btc_price
 from components.chart import render_candlestick_chart
@@ -69,8 +69,13 @@ def register_callbacks(app):
 
         return chart_fig, indicators
 
-    # ========== SIGNAL ENGINE ==========
+    # ========== SIGNAL ENGINE W/ PRICE TARGET LOGIC ==========
     def generate_signal(df):
+        # Measure actual price change
+        price_start = df["close"].iloc[0]
+        price_end = df["close"].iloc[-1]
+        price_change = price_end - price_start
+
         rsi = calculate_rsi(df).iloc[-1]
         macd_line, signal_line, _ = calculate_macd(df)
         macd_current = macd_line.iloc[-1]
@@ -83,22 +88,32 @@ def register_callbacks(app):
         confidence = 50
         strength = 5
 
-        if rsi < 30 and macd_current > signal_current and macd_prev < signal_prev:
-            signal = "Go Long"
-            confidence = 80
-            strength = 8 if volume_strength > 1 else 6
-        elif rsi > 70 and macd_current < signal_current and macd_prev > signal_prev:
-            signal = "Go Short"
-            confidence = 80
-            strength = 8 if volume_strength > 1 else 6
+        # Require at least $100 move
+        if abs(price_change) >= 100:
+            if price_change > 0:
+                signal = "Go Long"
+            else:
+                signal = "Go Short"
+
+            # Boost confidence if indicators align
+            indicator_score = 0
+            if signal == "Go Long" and rsi < 35 and macd_current > signal_current and macd_prev < signal_prev:
+                indicator_score += 2
+            if signal == "Go Short" and rsi > 65 and macd_current < signal_current and macd_prev > signal_prev:
+                indicator_score += 2
+            if volume_strength > 1:
+                indicator_score += 1
+
+            confidence = 70 + (indicator_score * 5)
+            strength = min(10, 5 + indicator_score)
 
         return signal, f"Confidence: {confidence}%", f"Strength: {strength}/10"
 
-    # ========== SIGNAL CALLBACKS ==========
     def log_signal_if_enabled(log_enabled, timeframe, signal, confidence, strength, price):
         if log_enabled:
             append_log(timeframe, signal, confidence, strength, price)
 
+    # ========== SIGNAL CALLBACKS ==========
     @app.callback(
         Output("signal-5m", "children"),
         Output("confidence-5m", "children"),
@@ -150,7 +165,7 @@ def register_callbacks(app):
         log_signal_if_enabled(log_enabled, "15m", signal, confidence, strength, price)
         return signal, confidence, strength
 
-    # ========== EXPORT CSV LOG ==========
+    # ========== EXPORT CSV ==========
     @app.callback(
         Output("export-button", "href"),
         Input("export-button", "n_clicks"),
@@ -162,3 +177,4 @@ def register_callbacks(app):
             return "/logs/signal_log.csv"
         else:
             raise PreventUpdate
+
