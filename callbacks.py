@@ -2,17 +2,28 @@
 
 from dash import Input, Output, State, dcc
 from dash.exceptions import PreventUpdate
-from components.live_price import fetch_live_btc_price
 from components.chart import render_candlestick_chart
 from components.indicators import render_indicators
 from utils.data import get_btc_data, get_backtest_data, append_log, ensure_log_file_exists
 from utils.indicators import calculate_rsi, calculate_macd, calculate_volume_strength
 import os
+import requests
 
 LOG_PATH = "logs/signal_log.csv"
+previous_price = None
+
+# Replace old Binance function with CoinGecko-based fetch
+def fetch_live_btc_price():
+    try:
+        url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        return float(data["bitcoin"]["usd"])
+    except Exception as e:
+        print(f"Error fetching price: {e}")
+        return None
 
 def register_callbacks(app):
-    previous_price = None
 
     # ========== LIVE BTC PRICE ==========
     @app.callback(
@@ -20,10 +31,13 @@ def register_callbacks(app):
         Input("interval-component", "n_intervals")
     )
     def update_btc_price(n_intervals):
-        nonlocal previous_price
+        global previous_price
         current_price = fetch_live_btc_price()
+
         if current_price is None:
             return "Live BTC Price: Error"
+
+        current_price = float(current_price)
 
         color = "white"
         if previous_price is not None:
@@ -69,7 +83,6 @@ def register_callbacks(app):
 
         return chart_fig, indicators
 
-    # ========== SIGNAL LOGIC ==========
     def generate_signal(df):
         price_start = df["close"].iloc[0]
         price_end = df["close"].iloc[-1]
@@ -111,7 +124,6 @@ def register_callbacks(app):
             ensure_log_file_exists()
             append_log(timeframe, signal, confidence, strength, price)
 
-    # ========== SIGNAL CALLBACKS ==========
     def make_signal_callback(timeframe, tail_n):
         @app.callback(
             Output(f"signal-{timeframe}", "children"),
@@ -128,14 +140,13 @@ def register_callbacks(app):
             sliced_df = df.tail(tail_n)
             signal, confidence, strength = generate_signal(sliced_df)
             price = sliced_df["close"].iloc[-1]
-            log_signal_if_enabled(log_enabled, f"{timeframe}", signal, confidence, strength, price)
+            log_signal_if_enabled(log_enabled, timeframe, signal, confidence, strength, price)
             return signal, confidence, strength
 
     make_signal_callback("5m", 5)
     make_signal_callback("10m", 10)
     make_signal_callback("15m", 15)
 
-    # ========== EXPORT CSV ==========
     @app.callback(
         Output("export-button", "href"),
         Input("export-button", "n_clicks"),
@@ -148,7 +159,6 @@ def register_callbacks(app):
         else:
             raise PreventUpdate
 
-    # ========== THEME TOGGLE ==========
     @app.callback(
         Output("url", "href"),
         Input("theme-toggle", "value"),
@@ -156,4 +166,5 @@ def register_callbacks(app):
     )
     def switch_theme(theme):
         return f"/?theme={theme}"
+
 
