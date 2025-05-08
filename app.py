@@ -1,35 +1,22 @@
 # app.py
 
-from dash import Dash, html, dcc, Output, Input
+import dash
+import dash_bootstrap_components as dbc
+from dash import html
 from components.layout import create_layout
+from callbacks import register_callbacks
 
 # Initialize Dash app
-app = Dash(__name__, suppress_callback_exceptions=True)
-
-# Main layout with theme routing support
-app.layout = html.Div([
-    dcc.Location(id="url", refresh=False),
-    html.Div(id="page-content")
-])
-
-# Update layout based on theme in URL (light/dark)
-@app.callback(
-    Output("page-content", "children"),
-    Input("url", "href")
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.BOOTSTRAP],
+    suppress_callback_exceptions=True,
+    title="BTC Signal Dashboard",
+    update_title="Updating...",
 )
-def display_page(href):
-    theme = "light"
-    if href and "theme=dark" in href:
-        theme = "dark"
-    return create_layout(theme)
 
-# Register all Dash callbacks
-from callbacks import register_callbacks
+app.layout = html.Div(id="main-layout", children=[create_layout()])
 register_callbacks(app)
 
-# ✅ Expose WSGI server for Render/Gunicorn compatibility
-server = app.server
+server = app.server  # For deployment on Render
 
-# Run locally (ignored on Render)
-if __name__ == "__main__":
-    app.run_server(debug=True)
