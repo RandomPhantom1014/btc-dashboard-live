@@ -46,7 +46,8 @@ def create_layout(theme="light"):
                 className="mode-toggle"
             ),
 
-            html.Div([  # Replace ... with your 5m/10m/15m signal rows
+            # === Signal Outputs ===
+            html.Div([
                 dbc.Row([
                     dbc.Col(html.Div("5 Minute Signal", className="timeframe-title"), width=12),
                     dbc.Col(html.Div(id="signal-5m", className="signal-pill"), width=4),
@@ -63,5 +64,35 @@ def create_layout(theme="light"):
 
                 dbc.Row([
                     dbc.Col(html.Div("15 Minute Signal", className="timeframe-title"), width=12),
-                    dbc.Col(html.Div(id="signal-15m",
+                    dbc.Col(html.Div(id="signal-15m", className="signal-pill"), width=4),
+                    dbc.Col(html.Div(id="confidence-15m", className="confidence"), width=4),
+                    dbc.Col(html.Div(render_strength_meter("15m"), id="strength-15m"), width=4),
+                ], className="signal-row"),
+            ]),
 
+            html.Div(
+                dbc.Button("Export CSV", id="export-button", color="primary", className="mt-3"),
+                className="export-container"
+            ),
+
+            html.Div(
+                dbc.Checkbox(id="save-logs-toggle", className="mt-2", value=False),
+                className="log-toggle"
+            ),
+
+            html.Div([
+                html.Label("Theme:"),
+                dcc.RadioItems(
+                    id="theme-toggle",
+                    options=[
+                        {"label": "Light", "value": "light"},
+                        {"label": "Dark", "value": "dark"}
+                    ],
+                    value="light",
+                    inline=True
+                )
+            ], className="theme-toggle")
+        ],
+        fluid=True,
+        className=f"{theme} main-container"
+    )
