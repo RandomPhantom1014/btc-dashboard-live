@@ -10,31 +10,26 @@ from components.chart import render_candlestick_chart
 from components.indicators import render_indicators
 from components.strength_meter import render_strength_meter
 
-def create_layout():
+def create_layout(theme="light"):
     return dbc.Container(
         [
+            dcc.Location(id="url", refresh=False),
             dcc.Interval(id="interval-component", interval=10*1000, n_intervals=0),
 
-            # Header
             render_header(),
 
-            # Live BTC Price
             html.Div(id="live-btc-price", className="live-price"),
 
-            # Candlestick Chart (now with proper ID)
             html.Div(
-                dcc.Graph(id="candlestick-chart", figure=render_candlestick_chart(pd.DataFrame())),
+                dcc.Graph(id="candlestick-chart"),
                 className="chart-container"
             ),
 
-            # Indicators (now with updatable ID)
             html.Div(
                 id="indicators-container",
-                children=render_indicators(),
                 className="indicators-container"
             ),
 
-            # Signal Toggle Switch
             html.Div(
                 [
                     html.Label("Signal Mode:"),
@@ -45,15 +40,13 @@ def create_layout():
                             {"label": "Backtest", "value": "backtest"},
                         ],
                         value="live",
-                        inline=True,
-                        labelStyle={"margin-right": "15px"}
-                    ),
+                        inline=True
+                    )
                 ],
                 className="mode-toggle"
             ),
 
-            # Signal Outputs by Timeframe
-            html.Div([
+            html.Div([  # Replace ... with your 5m/10m/15m signal rows
                 dbc.Row([
                     dbc.Col(html.Div("5 Minute Signal", className="timeframe-title"), width=12),
                     dbc.Col(html.Div(id="signal-5m", className="signal-pill"), width=4),
@@ -70,46 +63,5 @@ def create_layout():
 
                 dbc.Row([
                     dbc.Col(html.Div("15 Minute Signal", className="timeframe-title"), width=12),
-                    dbc.Col(html.Div(id="signal-15m", className="signal-pill"), width=4),
-                    dbc.Col(html.Div(id="confidence-15m", className="confidence"), width=4),
-                    dbc.Col(html.Div(render_strength_meter("15m"), id="strength-15m"), width=4),
-                ], className="signal-row"),
-            ]),
+                    dbc.Col(html.Div(id="signal-15m",
 
-            # CSV Export Button
-            html.Div(
-                dbc.Button("Export CSV", id="export-button", color="primary", className="mt-3"),
-                className="export-container"
-            ),
-
-            # Log Saving Toggle
-            html.Div(
-                dbc.Checkbox(
-                    id="save-logs-toggle",
-                    className="mt-2",
-                    value=False
-                ),
-                className="log-toggle"
-            ),
-
-            # Dark Mode Toggle
-            html.Div(
-                [
-                    html.Label("Theme:"),
-                    dcc.RadioItems(
-                        id="theme-toggle",
-                        options=[
-                            {"label": "Light", "value": "light"},
-                            {"label": "Dark", "value": "dark"},
-                        ],
-                        value="light",
-                        inline=True,
-                        labelStyle={"margin-right": "10px"}
-                    ),
-                ],
-                className="theme-toggle"
-            ),
-        ],
-        fluid=True,
-        className="main-container"
-    )
