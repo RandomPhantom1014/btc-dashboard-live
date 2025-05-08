@@ -1,7 +1,7 @@
 # utils/data.py
 
-import csv
 import os
+import csv
 import pandas as pd
 from datetime import datetime
 
@@ -28,7 +28,7 @@ def append_log(timeframe, signal, confidence, strength, price):
             price
         ])
 
-def get_btc_data():  # ✅ Temporarily return backtest data for both modes
+def get_btc_data():
     return get_backtest_data()
 
 def get_backtest_data():
