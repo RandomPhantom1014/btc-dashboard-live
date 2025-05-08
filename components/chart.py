@@ -1,27 +1,28 @@
 # components/chart.py
 
 import plotly.graph_objs as go
-from dash import dcc
-import pandas as pd
 
-def render_candlestick_chart(df: pd.DataFrame):
-    fig = go.Figure(
-        data=[
-            go.Candlestick(
-                x=df['time'],
-                open=df['open'],
-                high=df['high'],
-                low=df['low'],
-                close=df['close'],
-                name="BTC/USD"
-            )
-        ]
-    )
+def render_candlestick_chart(df):
+    fig = go.Figure()
+
+    fig.add_trace(go.Candlestick(
+        x=df['timestamp'],
+        open=df['open'],
+        high=df['high'],
+        low=df['low'],
+        close=df['close'],
+        name="Candles"
+    ))
+
     fig.update_layout(
-        xaxis_title='Time',
-        yaxis_title='Price (USD)',
-        template='plotly_dark',
-        margin=dict(l=40, r=40, t=40, b=40),
+        title="BTC/USD - Candlestick Chart",
+        xaxis_title="Time",
+        yaxis_title="Price (USD)",
+        template="plotly_dark",
+        margin=dict(l=20, r=20, t=30, b=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         height=400
     )
-    return dcc.Graph(figure=fig, id="candlestick-chart")
+
+    return fig
