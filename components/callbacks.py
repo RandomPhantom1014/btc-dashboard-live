@@ -5,13 +5,14 @@ from dash.exceptions import PreventUpdate
 from components.live_price import fetch_live_btc_price
 from components.chart import render_candlestick_chart
 from components.indicators import render_indicators
-from utils.data import get_btc_data, get_backtest_data, append_log
+from utils.data import get_btc_data, get_backtest_data, append_log, ensure_log_file_exists
 from utils.indicators import calculate_rsi, calculate_macd, calculate_volume_strength
 import os
 
-def register_callbacks(app):
+LOG_PATH = "logs/signal_log.csv"
 
-    previous_price = None  # Shared inside function scope
+def register_callbacks(app):
+    previous_price = None
 
     # ========== LIVE BTC PRICE ==========
     @app.callback(
@@ -21,7 +22,6 @@ def register_callbacks(app):
     def update_btc_price(n_intervals):
         nonlocal previous_price
         current_price = fetch_live_btc_price()
-
         if current_price is None:
             return "Live BTC Price: Error"
 
@@ -69,7 +69,7 @@ def register_callbacks(app):
 
         return chart_fig, indicators
 
-    # ========== SIGNAL ENGINE ==========
+    # ========== SIGNAL LOGIC ==========
     def generate_signal(df):
         price_start = df["close"].iloc[0]
         price_end = df["close"].iloc[-1]
@@ -93,74 +93,47 @@ def register_callbacks(app):
             else:
                 signal = "Go Short"
 
-            indicator_score = 0
+            score = 0
             if signal == "Go Long" and rsi < 35 and macd_current > signal_current and macd_prev < signal_prev:
-                indicator_score += 2
+                score += 2
             if signal == "Go Short" and rsi > 65 and macd_current < signal_current and macd_prev > signal_prev:
-                indicator_score += 2
+                score += 2
             if volume_strength > 1:
-                indicator_score += 1
+                score += 1
 
-            confidence = 70 + (indicator_score * 5)
-            strength = min(10, 5 + indicator_score)
+            confidence = 70 + (score * 5)
+            strength = min(10, 5 + score)
 
         return signal, f"Confidence: {confidence}%", f"Strength: {strength}/10"
 
     def log_signal_if_enabled(log_enabled, timeframe, signal, confidence, strength, price):
         if log_enabled:
+            ensure_log_file_exists()
             append_log(timeframe, signal, confidence, strength, price)
 
     # ========== SIGNAL CALLBACKS ==========
-    @app.callback(
-        Output("signal-5m", "children"),
-        Output("confidence-5m", "children"),
-        Output("strength-5m", "children"),
-        Input("interval-component", "n_intervals"),
-        State("mode-toggle", "value"),
-        State("save-logs-toggle", "value")
-    )
-    def update_signal_5m(n, mode, log_enabled):
-        df = get_backtest_data() if mode == "backtest" else get_btc_data()
-        if df.empty:
-            raise PreventUpdate
-        signal, confidence, strength = generate_signal(df.tail(5))
-        price = df["close"].iloc[-1]
-        log_signal_if_enabled(log_enabled, "5m", signal, confidence, strength, price)
-        return signal, confidence, strength
+    def make_signal_callback(timeframe, tail_n):
+        @app.callback(
+            Output(f"signal-{timeframe}", "children"),
+            Output(f"confidence-{timeframe}", "children"),
+            Output(f"strength-{timeframe}", "children"),
+            Input("interval-component", "n_intervals"),
+            State("mode-toggle", "value"),
+            State("save-logs-toggle", "value")
+        )
+        def signal_callback(n, mode, log_enabled):
+            df = get_backtest_data() if mode == "backtest" else get_btc_data()
+            if df.empty:
+                raise PreventUpdate
+            sliced_df = df.tail(tail_n)
+            signal, confidence, strength = generate_signal(sliced_df)
+            price = sliced_df["close"].iloc[-1]
+            log_signal_if_enabled(log_enabled, f"{timeframe}", signal, confidence, strength, price)
+            return signal, confidence, strength
 
-    @app.callback(
-        Output("signal-10m", "children"),
-        Output("confidence-10m", "children"),
-        Output("strength-10m", "children"),
-        Input("interval-component", "n_intervals"),
-        State("mode-toggle", "value"),
-        State("save-logs-toggle", "value")
-    )
-    def update_signal_10m(n, mode, log_enabled):
-        df = get_backtest_data() if mode == "backtest" else get_btc_data()
-        if df.empty:
-            raise PreventUpdate
-        signal, confidence, strength = generate_signal(df.tail(10))
-        price = df["close"].iloc[-1]
-        log_signal_if_enabled(log_enabled, "10m", signal, confidence, strength, price)
-        return signal, confidence, strength
-
-    @app.callback(
-        Output("signal-15m", "children"),
-        Output("confidence-15m", "children"),
-        Output("strength-15m", "children"),
-        Input("interval-component", "n_intervals"),
-        State("mode-toggle", "value"),
-        State("save-logs-toggle", "value")
-    )
-    def update_signal_15m(n, mode, log_enabled):
-        df = get_backtest_data() if mode == "backtest" else get_btc_data()
-        if df.empty:
-            raise PreventUpdate
-        signal, confidence, strength = generate_signal(df.tail(15))
-        price = df["close"].iloc[-1]
-        log_signal_if_enabled(log_enabled, "15m", signal, confidence, strength, price)
-        return signal, confidence, strength
+    make_signal_callback("5m", 5)
+    make_signal_callback("10m", 10)
+    make_signal_callback("15m", 15)
 
     # ========== EXPORT CSV ==========
     @app.callback(
@@ -169,9 +142,9 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def export_csv(n_clicks):
-        log_path = "logs/signal_log.csv"
-        if os.path.exists(log_path):
-            return "/logs/signal_log.csv"
+        ensure_log_file_exists()
+        if os.path.exists(LOG_PATH):
+            return f"/{LOG_PATH}"
         else:
             raise PreventUpdate
 
@@ -183,3 +156,4 @@ def register_callbacks(app):
     )
     def switch_theme(theme):
         return f"/?theme={theme}"
+
