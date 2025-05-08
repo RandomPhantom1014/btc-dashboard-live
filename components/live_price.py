@@ -1,14 +1,17 @@
+# components/live_price.py
+
 import requests
 
 def fetch_live_btc_price():
     try:
-        response = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd")
+        url = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
         data = response.json()
-        if "bitcoin" in data and "usd" in data["bitcoin"]:
-            return data["bitcoin"]["usd"]
-        else:
-            print("BTC price not found in API response:", data)
-            return None
+
+        # Extract price from response
+        return float(data["data"]["amount"])
+
     except Exception as e:
-        print("Error fetching price:", e)
+        print(f"Error fetching live BTC price: {e}")
         return None
