@@ -4,11 +4,12 @@ from datetime import datetime
 import pandas as pd
 import requests
 
-# ====== LOGGING SETUP ======
-LOG_FILE = "logs/signal_log.csv"
+# ====== LOG FILE SETUP ======
+LOG_DIR = "logs"
+LOG_FILE = os.path.join(LOG_DIR, "signal_log.csv")
 
 def ensure_log_file_exists():
-    os.makedirs("logs", exist_ok=True)
+    os.makedirs(LOG_DIR, exist_ok=True)
     if not os.path.isfile(LOG_FILE):
         with open(LOG_FILE, mode="w", newline="") as f:
             writer = csv.writer(f)
@@ -27,7 +28,7 @@ def append_log(timeframe, signal, confidence, strength, price):
             price
         ])
 
-# ====== LIVE DATA FETCH (from Binance) ======
+# ====== LIVE BTC DATA FETCH ======
 def get_btc_data():
     url = "https://api.binance.com/api/v3/klines"
     params = {
