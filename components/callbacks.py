@@ -1,12 +1,13 @@
 # callbacks.py
 
-from dash import Input, Output, State
+from dash import Input, Output, State, ctx, dcc
 from dash.exceptions import PreventUpdate
 from components.live_price import fetch_live_btc_price
 from components.chart import render_candlestick_chart
 from components.indicators import render_indicators
-from utils.data import get_btc_data, get_backtest_data
+from utils.data import get_btc_data, get_backtest_data, append_log
 from utils.indicators import calculate_rsi, calculate_macd, calculate_volume_strength
+import os
 
 previous_price = None
 
@@ -43,7 +44,7 @@ def register_callbacks(app):
             }
         ]
 
-    # ========== CHART + INDICATORS TOGGLE (LIVE vs BACKTEST) ==========
+    # ========== CHART + INDICATORS ==========
     @app.callback(
         Output("candlestick-chart", "figure"),
         Output("indicators-container", "children"),
@@ -94,41 +95,70 @@ def register_callbacks(app):
         return signal, f"Confidence: {confidence}%", f"Strength: {strength}/10"
 
     # ========== SIGNAL CALLBACKS ==========
+    def log_signal_if_enabled(log_enabled, timeframe, signal, confidence, strength, price):
+        if log_enabled:
+            append_log(timeframe, signal, confidence, strength, price)
+
     @app.callback(
         Output("signal-5m", "children"),
         Output("confidence-5m", "children"),
         Output("strength-5m", "children"),
         Input("interval-component", "n_intervals"),
-        State("mode-toggle", "value")
+        State("mode-toggle", "value"),
+        State("save-logs-toggle", "value")
     )
-    def update_signal_5m(n, mode):
+    def update_signal_5m(n, mode, log_enabled):
         df = get_backtest_data() if mode == "backtest" else get_btc_data()
         if df.empty:
             raise PreventUpdate
-        return generate_signal(df.tail(5))
+        signal, confidence, strength = generate_signal(df.tail(5))
+        price = df["close"].iloc[-1]
+        log_signal_if_enabled(log_enabled, "5m", signal, confidence, strength, price)
+        return signal, confidence, strength
 
     @app.callback(
         Output("signal-10m", "children"),
         Output("confidence-10m", "children"),
         Output("strength-10m", "children"),
         Input("interval-component", "n_intervals"),
-        State("mode-toggle", "value")
+        State("mode-toggle", "value"),
+        State("save-logs-toggle", "value")
     )
-    def update_signal_10m(n, mode):
+    def update_signal_10m(n, mode, log_enabled):
         df = get_backtest_data() if mode == "backtest" else get_btc_data()
         if df.empty:
             raise PreventUpdate
-        return generate_signal(df.tail(10))
+        signal, confidence, strength = generate_signal(df.tail(10))
+        price = df["close"].iloc[-1]
+        log_signal_if_enabled(log_enabled, "10m", signal, confidence, strength, price)
+        return signal, confidence, strength
 
     @app.callback(
         Output("signal-15m", "children"),
         Output("confidence-15m", "children"),
         Output("strength-15m", "children"),
         Input("interval-component", "n_intervals"),
-        State("mode-toggle", "value")
+        State("mode-toggle", "value"),
+        State("save-logs-toggle", "value")
     )
-    def update_signal_15m(n, mode):
+    def update_signal_15m(n, mode, log_enabled):
         df = get_backtest_data() if mode == "backtest" else get_btc_data()
         if df.empty:
             raise PreventUpdate
-        return generate_signal(df.tail(15))
+        signal, confidence, strength = generate_signal(df.tail(15))
+        price = df["close"].iloc[-1]
+        log_signal_if_enabled(log_enabled, "15m", signal, confidence, strength, price)
+        return signal, confidence, strength
+
+    # ========== EXPORT CSV LOG ==========
+    @app.callback(
+        Output("export-button", "href"),
+        Input("export-button", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def export_csv(n_clicks):
+        log_path = "logs/signal_log.csv"
+        if os.path.exists(log_path):
+            return "/logs/signal_log.csv"
+        else:
+            raise PreventUpdate
