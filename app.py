@@ -1,22 +1,20 @@
 # app.py
 
 import dash
-import dash_bootstrap_components as dbc
-from dash import html
+from dash import html, dcc
+from flask import Flask
 from components.layout import create_layout
 from callbacks import register_callbacks
 
-# Initialize Dash app
-app = dash.Dash(
-    __name__,
-    external_stylesheets=[dbc.themes.BOOTSTRAP],
-    suppress_callback_exceptions=True,
-    title="BTC Signal Dashboard",
-    update_title="Updating...",
-)
+# Setup server for Render compatibility
+server = Flask(__name__)
+app = dash.Dash(__name__, server=server, suppress_callback_exceptions=True)
 
-app.layout = html.Div(id="main-layout", children=[create_layout()])
+# Inject layout and callbacks
+app.title = "BTC Signal Dashboard"
+app.layout = create_layout()
 register_callbacks(app)
 
-server = app.server  # For deployment on Render
-
+# Run app locally (ignored by Render)
+if __name__ == "__main__":
+    app.run_server(debug=True)
