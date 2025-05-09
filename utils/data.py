@@ -40,10 +40,12 @@ def get_btc_data(mode="live"):
             print("Backtest file not found.")
             return pd.DataFrame()
 
-    # Live mode via Coinbase API
+    # Live mode via Coinbase API (candles)
     try:
-        url = "https://api.pro.coinbase.com/products/BTC-USD/candles?granularity=60"
-        response = requests.get(url)
+        url = "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=60"
+        headers = {"Accept": "application/json"}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
         candles = response.json()
 
         df = pd.DataFrame(candles, columns=["time", "low", "high", "open", "close", "volume"])
