@@ -6,23 +6,23 @@ def render_candlestick_chart(df):
     fig = go.Figure()
 
     fig.add_trace(go.Candlestick(
-        x=df['timestamp'],
-        open=df['open'],
-        high=df['high'],
-        low=df['low'],
-        close=df['close'],
-        name="Candles"
+        x=df["timestamp"],
+        open=df["open"],
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        name="BTC"
     ))
 
     fig.update_layout(
-        title="BTC/USD - Candlestick Chart",
+        title="BTC Candlestick Chart",
         xaxis_title="Time",
         yaxis_title="Price (USD)",
-        template="plotly_dark",
-        margin=dict(l=20, r=20, t=30, b=20),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        height=400
+        xaxis_rangeslider_visible=False,
+        template="plotly_white",
+        height=400,
+        margin=dict(l=20, r=20, t=40, b=20)
     )
 
     return fig
+
