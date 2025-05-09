@@ -1,79 +1,138 @@
-# components/layout.py
-
 import dash
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 from components.header import render_header
 from components.strength_meter import render_strength_meter
 
-def signal_block(timeframe):
-    return dbc.Col([
-        html.Div(f"{timeframe} Signal", className="timeframe-title"),
-        html.Div(id=f"signal-{timeframe}", className="signal-pill"),
-        html.Div(id=f"confidence-{timeframe}", className="confidence"),
-        html.Div(render_strength_meter(timeframe), id=f"strength-{timeframe}", className="strength-meter"),
-        html.Div(id=f"timestamp-{timeframe}", className="timestamp"),
-        html.Div(id=f"countdown-{timeframe}", className="countdown")
-    ], className="signal-col", width=6)
-
 def create_layout():
-    return dbc.Container([
-        dcc.Interval(id="interval-component", interval=10*1000, n_intervals=0),
+    return dbc.Container(
+        [
+            dcc.Interval(id="interval-component", interval=10 * 1000, n_intervals=0),
 
-        # Header
-        render_header(),
+            # Header
+            render_header(),
 
-        # Live BTC Price
-        html.Div(id="live-btc-price", className="live-price"),
+            # Live BTC Price (centered)
+            html.Div(id="live-btc-price", className="live-price", style={
+                "fontSize": "36px",
+                "fontWeight": "bold",
+                "textAlign": "center",
+                "marginBottom": "20px"
+            }),
 
-        # Mode Toggle
-        html.Div([
-            html.Label("Signal Mode:"),
-            dcc.RadioItems(
-                id="mode-toggle",
-                options=[
-                    {"label": "Live", "value": "live"},
-                    {"label": "Backtest", "value": "backtest"},
+            # Signal Mode Toggle
+            html.Div(
+                [
+                    html.Label("Signal Mode:"),
+                    dcc.RadioItems(
+                        id="mode-toggle",
+                        options=[
+                            {"label": "Live", "value": "live"},
+                            {"label": "Backtest", "value": "backtest"},
+                        ],
+                        value="live",
+                        inline=True,
+                        labelStyle={"marginRight": "15px"}
+                    ),
                 ],
-                value="live",
-                inline=True,
-                labelStyle={"marginRight": "15px"}
+                className="mode-toggle"
             ),
-        ], className="mode-toggle"),
 
-        # Signals Block (Side-by-side rows, each with short + long timeframe)
-        dbc.Row([
-            signal_block("5m"),
-            signal_block("1h"),
-        ], className="signal-row"),
-        dbc.Row([
-            signal_block("10m"),
-            signal_block("6h"),
-        ], className="signal-row"),
-        dbc.Row([
-            signal_block("15m"),
-            signal_block("12h"),
-        ], className="signal-row"),
-        dbc.Row([
-            dbc.Col([], width=6),
-            signal_block("24h"),
-        ], className="signal-row"),
+            # Signal Panel - Left = Short-Term | Right = Long-Term
+            dbc.Row([
+                # Short-Term Column
+                dbc.Col([
+                    html.Div("Short-Term Signals", className="timeframe-title"),
 
-        # Export Button
-        html.Div(
-            dbc.Button("Export CSV", id="export-button", color="primary", className="mt-3"),
-            className="export-container"
-        ),
+                    html.Div([
+                        html.Div("5 Minute Signal", className="timeframe-title"),
+                        html.Div(id="signal-5m", className="signal-pill"),
+                        html.Div(id="confidence-5m", className="confidence"),
+                        html.Div(render_strength_meter("5m"), id="strength-5m"),
+                        html.Div(id="timestamp-5m", className="timestamp-label"),
+                        html.Div(id="countdown-5m", className="countdown-timer"),
+                    ], className="signal-row"),
 
-        # Log Toggle
-        html.Div(
-            dbc.Checkbox(
-                id="save-logs-toggle",
-                className="mt-2",
-                value=False
+                    html.Div([
+                        html.Div("10 Minute Signal", className="timeframe-title"),
+                        html.Div(id="signal-10m", className="signal-pill"),
+                        html.Div(id="confidence-10m", className="confidence"),
+                        html.Div(render_strength_meter("10m"), id="strength-10m"),
+                        html.Div(id="timestamp-10m", className="timestamp-label"),
+                        html.Div(id="countdown-10m", className="countdown-timer"),
+                    ], className="signal-row"),
+
+                    html.Div([
+                        html.Div("15 Minute Signal", className="timeframe-title"),
+                        html.Div(id="signal-15m", className="signal-pill"),
+                        html.Div(id="confidence-15m", className="confidence"),
+                        html.Div(render_strength_meter("15m"), id="strength-15m"),
+                        html.Div(id="timestamp-15m", className="timestamp-label"),
+                        html.Div(id="countdown-15m", className="countdown-timer"),
+                    ], className="signal-row"),
+
+                ], md=6),
+
+                # Long-Term Column
+                dbc.Col([
+                    html.Div("Futures Signals", className="timeframe-title"),
+
+                    html.Div([
+                        html.Div("1 Hour Signal", className="timeframe-title"),
+                        html.Div(id="signal-1h", className="signal-pill"),
+                        html.Div(id="confidence-1h", className="confidence"),
+                        html.Div(render_strength_meter("1h"), id="strength-1h"),
+                        html.Div(id="timestamp-1h", className="timestamp-label"),
+                        html.Div(id="countdown-1h", className="countdown-timer"),
+                    ], className="signal-row"),
+
+                    html.Div([
+                        html.Div("6 Hour Signal", className="timeframe-title"),
+                        html.Div(id="signal-6h", className="signal-pill"),
+                        html.Div(id="confidence-6h", className="confidence"),
+                        html.Div(render_strength_meter("6h"), id="strength-6h"),
+                        html.Div(id="timestamp-6h", className="timestamp-label"),
+                        html.Div(id="countdown-6h", className="countdown-timer"),
+                    ], className="signal-row"),
+
+                    html.Div([
+                        html.Div("12 Hour Signal", className="timeframe-title"),
+                        html.Div(id="signal-12h", className="signal-pill"),
+                        html.Div(id="confidence-12h", className="confidence"),
+                        html.Div(render_strength_meter("12h"), id="strength-12h"),
+                        html.Div(id="timestamp-12h", className="timestamp-label"),
+                        html.Div(id="countdown-12h", className="countdown-timer"),
+                    ], className="signal-row"),
+
+                    html.Div([
+                        html.Div("24 Hour Signal", className="timeframe-title"),
+                        html.Div(id="signal-24h", className="signal-pill"),
+                        html.Div(id="confidence-24h", className="confidence"),
+                        html.Div(render_strength_meter("24h"), id="strength-24h"),
+                        html.Div(id="timestamp-24h", className="timestamp-label"),
+                        html.Div(id="countdown-24h", className="countdown-timer"),
+                    ], className="signal-row"),
+
+                ], md=6),
+            ]),
+
+            # CSV Export Button
+            html.Div(
+                dbc.Button("Export CSV", id="export-button", color="primary", className="mt-3"),
+                className="export-container"
             ),
-            className="log-toggle"
-        )
-    ], fluid=True, className="main-container")
 
+            # Log Saving Toggle
+            html.Div(
+                dbc.Checkbox(
+                    id="save-logs-toggle",
+                    className="mt-2",
+                    value=False
+                ),
+                className="log-toggle"
+            ),
+        ],
+        fluid=True,
+        className="main-container"
+    )
 
