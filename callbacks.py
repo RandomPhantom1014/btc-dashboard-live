@@ -1,22 +1,13 @@
-# callbacks.py
-
 from dash import Input, Output, State
 from dash.exceptions import PreventUpdate
 from components.live_price import fetch_live_btc_price
 from utils.data import get_btc_data, append_log
 from utils.signals_logic import generate_signals
 from datetime import datetime, timedelta
+import pytz
 
 previous_price = None
-last_signals = {"5m": None, "10m": None, "15m": None}
 last_timestamps = {"5m": None, "10m": None, "15m": None}
-
-def format_countdown(signal_time, duration_minutes):
-    remaining = (signal_time + timedelta(minutes=duration_minutes)) - datetime.utcnow()
-    if remaining.total_seconds() < 0:
-        return "Expired"
-    mins, secs = divmod(int(remaining.total_seconds()), 60)
-    return f"{mins}:{secs:02d}"
 
 def register_callbacks(app):
 
@@ -39,11 +30,8 @@ def register_callbacks(app):
         previous_price = price
 
         return [
-            "Live BTC Price: ",
-            {"type": "span", "props": {
-                "style": {"color": color, "fontWeight": "bold"},
-                "children": f"${float(price):,.2f}"
-            }}
+            html.Span("Live BTC Price: ", style={"fontWeight": "bold", "marginRight": "8px"}),
+            html.Span(f"${price:,.2f}", style={"color": color})
         ]
 
     @app.callback(
@@ -61,33 +49,44 @@ def register_callbacks(app):
         State("save-logs-toggle", "value")
     )
     def update_signals(n, mode, save_logs):
-        global last_signals, last_timestamps
-
+        global last_timestamps
         df = get_btc_data(mode)
         if df is None or df.empty:
             raise PreventUpdate
 
-        now = datetime.utcnow()
+        now = datetime.now(pytz.timezone("Pacific/Honolulu"))
 
-        output = []
+        results = []
         for tf in ["5m", "10m", "15m"]:
-            minutes = int(tf.replace("m", ""))
+            signal, conf, strength = generate_signals(df, tf)
+            current_price = df["close"].iloc[-1]
 
-            if last_timestamps[tf] is None or now - last_timestamps[tf] >= timedelta(minutes=minutes):
-                s, c, st = generate_signals(df, tf)
-                last_signals[tf] = (s, c, st)
+            # Save signal timestamp
+            if last_timestamps[tf] is None or signal != "Wait":
                 last_timestamps[tf] = now
+
+            # Compute time left for countdown
+            delta = int(tf.replace("m", ""))
+            if last_timestamps[tf]:
+                seconds_passed = (now - last_timestamps[tf]).total_seconds()
+                seconds_left = max(0, delta * 60 - int(seconds_passed))
             else:
-                s, c, st = last_signals[tf]
+                seconds_left = delta * 60
 
-            timestamp_display = last_timestamps[tf].strftime("%H:%M:%S HST")
-            countdown = format_countdown(last_timestamps[tf], minutes)
-            label = f"{s} — {timestamp_display} — {countdown} left"
+            minutes_left = seconds_left // 60
+            seconds_display = seconds_left % 60
+            countdown = f"{minutes_left}:{seconds_display:02d} left"
 
-            output.extend([label, f"Confidence: {c}%", st])
+            timestamp_str = last_timestamps[tf].strftime("%H:%M:%S HST") if last_timestamps[tf] else "--:--:--"
+
+            signal_label = html.Div([
+                html.Span(signal, style={"fontWeight": "bold", "marginRight": "8px"}),
+                html.Span(f"{timestamp_str} — {countdown}", style={"backgroundColor": "#e0e0e0", "padding": "3px 8px", "borderRadius": "6px"})
+            ])
 
             if save_logs:
-                current_price = df["close"].iloc[-1]
-                append_log(tf, s, c, st, current_price)
+                append_log(tf, signal, conf, strength, current_price)
 
-        return tuple(output)
+            results.extend([signal_label, f"Confidence: {conf}%", strength])
+
+        return tuple(results)
