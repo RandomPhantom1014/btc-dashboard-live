@@ -1,33 +1,51 @@
+import pandas as pd
+
 def generate_signals(df, timeframe):
     if df is None or df.empty:
         return "Wait", 0, "Weak"
 
-    # Timeframe to row window mapping
-    rows_map = {
+    # Resample for longer timeframes
+    if timeframe in ["1h", "6h", "12h", "24h"]:
+        rule = {
+            "1h": "1H",
+            "6h": "6H",
+            "12h": "12H",
+            "24h": "24H"
+        }[timeframe]
+
+        df = df.resample(rule).agg({
+            "open": "first",
+            "high": "max",
+            "low": "min",
+            "close": "last",
+            "volume": "sum"
+        }).dropna()
+
+    # Determine how many candles to analyze
+    candles_required = {
         "5m": 5,
         "10m": 10,
         "15m": 15,
-        "1h": 60,
-        "6h": 360,
-        "12h": 720,
-        "24h": 1440
-    }
+        "1h": 5,
+        "6h": 5,
+        "12h": 5,
+        "24h": 5
+    }.get(timeframe, 5)
 
-    rows = rows_map.get(timeframe, 5)
-    if len(df) < rows:
+    if len(df) < candles_required:
         return "Wait", 0, "Weak"
 
-    recent = df.tail(rows)
+    recent = df.tail(candles_required)
     close_prices = recent["close"]
 
-    # RSI Calculation
+    # RSI
     delta = close_prices.diff().dropna()
     gain = delta.where(delta > 0, 0).mean()
     loss = -delta.where(delta < 0, 0).mean()
     rs = gain / loss if loss != 0 else 0
     rsi = 100 - (100 / (1 + rs))
 
-    # MACD Calculation (basic version)
+    # MACD
     ema12 = close_prices.ewm(span=12, adjust=False).mean()
     ema26 = close_prices.ewm(span=26, adjust=False).mean()
     macd = ema12 - ema26
@@ -35,12 +53,12 @@ def generate_signals(df, timeframe):
     macd_recent = macd.iloc[-1]
     signal_recent = signal_line.iloc[-1]
 
-    # Volume spike detection
-    avg_vol = df["volume"].rolling(window=rows).mean().iloc[-1]
-    latest_vol = df["volume"].iloc[-1]
+    # Volume spike
+    avg_vol = recent["volume"].mean()
+    latest_vol = recent["volume"].iloc[-1]
     vol_spike = latest_vol > avg_vol * 1.3
 
-    # Signal logic
+    # Signal scoring logic
     score = 0
     if rsi < 30:
         score += 1
@@ -55,7 +73,7 @@ def generate_signals(df, timeframe):
     if vol_spike:
         score += 1
 
-    # Final signal decision
+    # Decision
     if score >= 2:
         return "Go Long", 80 + score * 5, "Strong"
     elif score <= -2:
