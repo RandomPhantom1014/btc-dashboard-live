@@ -2,39 +2,36 @@
 
 from dash import Input, Output, State
 from dash.exceptions import PreventUpdate
-from components.live_price import fetch_live_btc_price
 from components.chart import render_candlestick_chart
-from components.signals_logic import get_signal
-from utils.data import get_btc_data, append_log
+from components.indicators import render_indicators
+from components.signals_logic import generate_signal
+from utils.data import get_btc_data
+
+previous_price = None
 
 def register_callbacks(app):
-    # Track previous price for color comparison
-    previous_price = {"value": None}
-
-    # Update Live BTC Price Display
     @app.callback(
         Output("live-btc-price", "children"),
         Input("interval-component", "n_intervals"),
-        State("signal-mode", "value")
+        State("mode-toggle", "value")
     )
-    def update_btc_price(n, mode):
-        if mode == "backtest":
-            return "Backtest Mode: No Live Price"
-
-        price = fetch_live_btc_price()
-        if price is None:
+    def update_btc_price(n_intervals, mode):
+        global previous_price
+        df = get_btc_data(mode)
+        if df.empty:
             return "Live BTC Price: Error"
+        price = df["close"].iloc[-1]
 
         color = "white"
-        if previous_price["value"] is not None:
-            if price > previous_price["value"]:
+        if previous_price is not None:
+            if price > previous_price:
                 color = "limegreen"
-            elif price < previous_price["value"]:
+            elif price < previous_price:
                 color = "red"
-        previous_price["value"] = price
+        previous_price = price
 
         return [
-            f"Live BTC Price: ",
+            "Live BTC Price: ",
             {
                 "type": "span",
                 "props": {
@@ -44,39 +41,58 @@ def register_callbacks(app):
             }
         ]
 
-    # Update Chart + Signals
     @app.callback(
         Output("candlestick-chart", "figure"),
-        Output("five-min-signal", "children"),
-        Output("ten-min-signal", "children"),
-        Output("fifteen-min-signal", "children"),
+        Output("indicators-container", "children"),
         Input("interval-component", "n_intervals"),
-        State("signal-mode", "value"),
-        State("save-logs-toggle", "value")
+        State("mode-toggle", "value")
     )
-    def update_dashboard(n, mode, save_logs):
+    def update_charts(n, mode):
         df = get_btc_data(mode)
         if df.empty:
             raise PreventUpdate
+        return render_candlestick_chart(df), render_indicators(df)
 
-        # Generate chart
-        chart = render_candlestick_chart(df)
+    @app.callback(
+        Output("signal-5m", "children"),
+        Output("confidence-5m", "children"),
+        Output("strength-5m", "children"),
+        Input("interval-component", "n_intervals"),
+        State("mode-toggle", "value")
+    )
+    def update_signal_5m(n, mode):
+        df = get_btc_data(mode)
+        signal, confidence, strength = generate_signal(df, "5m")
+        return signal, f"Confidence: {confidence}", strength
 
-        # Generate signals
-        signal_5m, conf_5m, strength_5m = get_signal(df, 5)
-        signal_10m, conf_10m, strength_10m = get_signal(df, 10)
-        signal_15m, conf_15m, strength_15m = get_signal(df, 15)
+    @app.callback(
+        Output("signal-10m", "children"),
+        Output("confidence-10m", "children"),
+        Output("strength-10m", "children"),
+        Input("interval-component", "n_intervals"),
+        State("mode-toggle", "value")
+    )
+    def update_signal_10m(n, mode):
+        df = get_btc_data(mode)
+        signal, confidence, strength = generate_signal(df, "10m")
+        return signal, f"Confidence: {confidence}", strength
 
-        # Save logs if toggle is on and in live mode
-        if save_logs and mode == "live":
-            price_now = df["close"].iloc[-1]
-            append_log("5m", signal_5m, conf_5m, strength_5m, price_now)
-            append_log("10m", signal_10m, conf_10m, strength_10m, price_now)
-            append_log("15m", signal_15m, conf_15m, strength_15m, price_now)
+    @app.callback(
+        Output("signal-15m", "children"),
+        Output("confidence-15m", "children"),
+        Output("strength-15m", "children"),
+        Input("interval-component", "n_intervals"),
+        State("mode-toggle", "value")
+    )
+    def update_signal_15m(n, mode):
+        df = get_btc_data(mode)
+        signal, confidence, strength = generate_signal(df, "15m")
+        return signal, f"Confidence: {confidence}", strength
 
-        return chart, (
-            f"{signal_5m} | Confidence: {conf_5m}% | Strength: {strength_5m}/10",
-            f"{signal_10m} | Confidence: {conf_10m}% | Strength: {strength_10m}/10",
-            f"{signal_15m} | Confidence: {conf_15m}% | Strength: {strength_15m}/10"
-        )
-
+    @app.callback(
+        Output("theme-toggle", "value"),
+        Input("theme-toggle", "value"),
+        prevent_initial_call=True
+    )
+    def sync_theme_toggle(value):
+        return value
