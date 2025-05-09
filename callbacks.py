@@ -1,6 +1,4 @@
-# callbacks.py
-
-from dash import Input, Output, State
+from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 from components.live_price import fetch_live_btc_price
 from utils.data import get_btc_data, append_log
@@ -28,13 +26,10 @@ def register_callbacks(app):
                 color = "red"
         previous_price = price
 
-        return [
+        return html.Span([
             "Live BTC Price: ",
-            {"type": "span", "props": {
-                "style": {"color": color, "fontWeight": "bold"},
-                "children": f"${float(price):,.2f}"
-            }}
-        ]
+            html.Span(f"${float(price):,.2f}", style={"color": color, "fontWeight": "bold"})
+        ])
 
     @app.callback(
         Output("signal-5m", "children"),
