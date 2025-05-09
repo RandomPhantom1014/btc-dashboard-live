@@ -1,58 +1,27 @@
-# components/indicators.py
+# utils/indicators.py
 
-from dash import html, dcc
-import plotly.graph_objs as go
 import pandas as pd
 
-def render_indicators(df):
-    if df.empty or "timestamp" not in df.columns:
-        return html.Div("Loading indicators...")
+def calculate_rsi(close_prices, period=14):
+    delta = close_prices.diff().dropna()
+    gain = delta.where(delta > 0, 0.0)
+    loss = -delta.where(delta < 0, 0.0)
 
-    rsi_chart = go.Figure(
-        data=[go.Scatter(x=df["timestamp"], y=df["rsi"], mode="lines", name="RSI")],
-        layout=go.Layout(
-            height=200,
-            margin=dict(l=30, r=30, t=30, b=30),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            yaxis=dict(title="RSI", range=[0, 100])
-        )
-    )
+    avg_gain = gain.rolling(window=period).mean()
+    avg_loss = loss.rolling(window=period).mean()
 
-    macd_chart = go.Figure(
-        data=[go.Scatter(x=df["timestamp"], y=df["macd"], mode="lines", name="MACD")],
-        layout=go.Layout(
-            height=200,
-            margin=dict(l=30, r=30, t=30, b=30),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            yaxis=dict(title="MACD")
-        )
-    )
+    rs = avg_gain / avg_loss.replace(0, 1e-10)
+    rsi = 100 - (100 / (1 + rs))
+    return rsi.fillna(0).tolist()
 
-    volume_chart = go.Figure(
-        data=[go.Bar(x=df["timestamp"], y=df["volume"], name="Volume")],
-        layout=go.Layout(
-            height=200,
-            margin=dict(l=30, r=30, t=30, b=30),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            yaxis=dict(title="Volume")
-        )
-    )
+def calculate_macd(close_prices, span_fast=12, span_slow=26, signal_span=9):
+    ema_fast = close_prices.ewm(span=span_fast, adjust=False).mean()
+    ema_slow = close_prices.ewm(span=span_slow, adjust=False).mean()
+    macd = ema_fast - ema_slow
+    signal = macd.ewm(span=signal_span, adjust=False).mean()
+    histogram = macd - signal
+    return macd.fillna(0).tolist(), signal.fillna(0).tolist()
 
-    return html.Div([
-        html.Div([
-            html.H5("RSI Indicator"),
-            dcc.Graph(figure=rsi_chart, config={"displayModeBar": False})
-        ]),
-        html.Div([
-            html.H5("MACD Indicator"),
-            dcc.Graph(figure=macd_chart, config={"displayModeBar": False})
-        ]),
-        html.Div([
-            html.H5("Volume"),
-            dcc.Graph(figure=volume_chart, config={"displayModeBar": False})
-        ])
-    ], style={"padding": "10px"})
+def calculate_volume(volume_data):
+    return volume_data.fillna(0).tolist()
 
