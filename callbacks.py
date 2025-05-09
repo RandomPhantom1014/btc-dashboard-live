@@ -6,18 +6,10 @@ from utils.signals_logic import generate_signals
 from datetime import datetime, timedelta
 import pytz
 
-# Global cache for signal timestamps
-signal_times = {}
-
-# Mapping from timeframe to timedelta for countdown
-timeframe_to_delta = {
-    "5m": timedelta(minutes=5),
-    "10m": timedelta(minutes=10),
-    "15m": timedelta(minutes=15),
-    "1h": timedelta(hours=1),
-    "6h": timedelta(hours=6),
-    "12h": timedelta(hours=12),
-    "24h": timedelta(hours=24),
+# Time tracker for each signal
+signal_times = {
+    "5m": None, "10m": None, "15m": None,
+    "1h": None, "6h": None, "12h": None, "24h": None
 }
 
 def register_callbacks(app):
@@ -37,11 +29,27 @@ def register_callbacks(app):
         ])
 
     @app.callback(
-        [Output(f"signal-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
-        [Output(f"confidence-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
-        [Output(f"strength-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
-        [Output(f"timestamp-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
-        [Output(f"countdown-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]],
+        Output("signal-5m", "children"),
+        Output("confidence-5m", "children"),
+        Output("strength-5m", "children"),
+        Output("signal-10m", "children"),
+        Output("confidence-10m", "children"),
+        Output("strength-10m", "children"),
+        Output("signal-15m", "children"),
+        Output("confidence-15m", "children"),
+        Output("strength-15m", "children"),
+        Output("signal-1h", "children"),
+        Output("confidence-1h", "children"),
+        Output("strength-1h", "children"),
+        Output("signal-6h", "children"),
+        Output("confidence-6h", "children"),
+        Output("strength-6h", "children"),
+        Output("signal-12h", "children"),
+        Output("confidence-12h", "children"),
+        Output("strength-12h", "children"),
+        Output("signal-24h", "children"),
+        Output("confidence-24h", "children"),
+        Output("strength-24h", "children"),
         Input("interval-component", "n_intervals"),
         State("mode-toggle", "value"),
         State("save-logs-toggle", "value")
@@ -51,43 +59,42 @@ def register_callbacks(app):
         if df is None or df.empty:
             raise PreventUpdate
 
+        hst = pytz.timezone("Pacific/Honolulu")
+        now = datetime.now(hst)
+
+        results = []
         timeframes = ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]
-
-        signal_outputs = []
-        confidence_outputs = []
-        strength_outputs = []
-        timestamp_outputs = []
-        countdown_outputs = []
-
-        now = datetime.now(pytz.timezone("Pacific/Honolulu"))
+        current_price = df["close"].iloc[-1]
 
         for tf in timeframes:
-            sig, conf, strength = generate_signals(df, tf)
-            current_price = df["close"].iloc[-1]
+            signal, confidence, strength = generate_signals(df, tf)
 
-            # Timestamp logic
-            signal_times.setdefault(tf, now)
-            if sig != "Wait":
+            # Record timestamp
+            if signal != "Wait":
                 signal_times[tf] = now
 
-            time_str = signal_times[tf].strftime("HST %H:%M:%S")
-            countdown = max(signal_times[tf] + timeframe_to_delta[tf] - now, timedelta(seconds=0))
-            countdown_str = f"⏳ {str(countdown).split('.')[0]} remaining"
+            # Countdown timer
+            duration_map = {
+                "5m": 5, "10m": 10, "15m": 15,
+                "1h": 60, "6h": 360, "12h": 720, "24h": 1440
+            }
+            countdown = ""
+            if signal_times[tf]:
+                elapsed = (now - signal_times[tf]).total_seconds()
+                remaining = max(0, duration_map[tf] * 60 - elapsed)
+                mins, secs = divmod(int(remaining), 60)
+                countdown = f" ({mins:02d}:{secs:02d} left)"
 
-            # Append data
-            signal_outputs.append(sig)
-            confidence_outputs.append(f"Confidence: {conf}%")
-            strength_outputs.append(strength)
-            timestamp_outputs.append(f"🕒 {time_str}")
-            countdown_outputs.append(countdown_str)
+            timestamp_str = signal_times[tf].strftime("%H:%M HST") if signal_times[tf] else "--:-- HST"
+            signal_label = html.Div([
+                html.Span(signal, style={"fontWeight": "bold"}),
+                html.Span(f" | {timestamp_str}{countdown}", style={"fontSize": "12px", "marginLeft": "6px"})
+            ])
 
+            results.extend([signal_label, f"Confidence: {confidence}%", strength])
+
+            # Optional logging
             if save_logs:
-                append_log(tf, sig, conf, strength, current_price)
+                append_log(tf, signal, confidence, strength, current_price)
 
-        return (
-            *signal_outputs,
-            *confidence_outputs,
-            *strength_outputs,
-            *timestamp_outputs,
-            *countdown_outputs
-        )
+        return tuple(results)
