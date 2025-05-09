@@ -1,32 +1,46 @@
 # components/signals_logic.py
 
-def get_signal(df, minutes=5):
-    """
-    Calculate the signal for the given timeframe (in minutes).
-    Assumes 1 row per minute.
-    """
-    if df is None or len(df) < minutes + 1:
-        return "Wait", 0, 0
+def generate_signal(df, timeframe_label):
+    if df is None or df.empty:
+        return "Wait", "0%", "Low"
 
-    recent = df.tail(minutes + 1)
-    price_now = recent['close'].iloc[-1]
-    price_then = recent['close'].iloc[0]
-    delta = price_now - price_then
+    # Use the most recent row
+    latest = df.iloc[-1]
+    prev = df.iloc[-2] if len(df) > 1 else latest
 
-    # Example thresholds — customize for real-world use
-    threshold = 30  # Adjust based on volatility preference
+    signal = "Wait"
+    confidence = 0
+    strength = "Low"
 
-    if delta >= threshold:
+    # RSI logic
+    rsi = latest["RSI"]
+    if rsi < 30:
         signal = "Go Long"
-        confidence = round(min(100, abs(delta) * 2), 1)
-        strength = min(10, int(abs(delta) / 10))
-    elif delta <= -threshold:
+        confidence += 30
+    elif rsi > 70:
         signal = "Go Short"
-        confidence = round(min(100, abs(delta) * 2), 1)
-        strength = min(10, int(abs(delta) / 10))
+        confidence += 30
     else:
-        signal = "Wait"
-        confidence = 50
-        strength = 5
+        confidence += 10
 
-    return signal, confidence, strength
+    # MACD crossover logic
+    if latest["MACD"] > latest["Signal"] and prev["MACD"] <= prev["Signal"]:
+        signal = "Go Long"
+        confidence += 30
+    elif latest["MACD"] < latest["Signal"] and prev["MACD"] >= prev["Signal"]:
+        signal = "Go Short"
+        confidence += 30
+
+    # Volume spike
+    avg_vol = df["volume"].rolling(window=10).mean().iloc[-1]
+    if latest["volume"] > avg_vol * 1.5:
+        confidence += 20
+
+    # Final strength level
+    if confidence >= 70:
+        strength = "High"
+    elif confidence >= 40:
+        strength = "Medium"
+
+    return signal, f"{confidence}%", strength
+
