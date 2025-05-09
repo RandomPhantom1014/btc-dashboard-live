@@ -1,5 +1,3 @@
-# components/header.py
-
 from dash import html
 
 def render_header():
@@ -8,7 +6,7 @@ def render_header():
         children=[
             html.H2("📊 BTC Signal Dashboard", style={
                 "textAlign": "center",
-                "color": "#fff",
+                "color": "#000",  # black font for light background
                 "paddingTop": "10px",
                 "paddingBottom": "10px",
                 "fontWeight": "bold"
