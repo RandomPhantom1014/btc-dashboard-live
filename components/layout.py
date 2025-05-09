@@ -6,7 +6,6 @@ from dash import html, dcc
 import pandas as pd
 
 from components.header import render_header
-from components.indicators import render_indicators
 from components.strength_meter import render_strength_meter
 
 def create_layout():
@@ -24,9 +23,6 @@ def create_layout():
                 "textAlign": "center",
                 "marginBottom": "20px"
             }),
-
-            # RSI, MACD, Volume Indicators
-            html.Div(render_indicators(), className="indicators-container"),
 
             # Signal Mode Toggle (Live vs Backtest)
             html.Div(
