@@ -11,21 +11,31 @@ body {
 }
 
 /* Header */
-.dashboard-header h2 {
-    font-size: 36px;
-    font-weight: bold;
+.dashboard-header {
     text-align: center;
     margin-bottom: 20px;
+}
+
+.header-title {
+    font-size: 36px;
+    font-weight: bold;
     color: #000;
 }
 
 /* Live BTC Price */
 .live-price {
-    font-size: 40px;
+    font-size: 30px;
     font-weight: bold;
     text-align: center;
     margin-bottom: 30px;
     color: #000;
+}
+
+/* Mode toggle */
+.mode-toggle {
+    margin: 20px 0;
+    font-size: 18px;
+    text-align: center;
 }
 
 /* Signal Row Titles */
@@ -33,41 +43,43 @@ body {
     font-size: 22px;
     font-weight: 600;
     color: #333;
-    margin-top: 20px;
     margin-bottom: 10px;
-    text-align: left;
 }
 
 /* Signal Output Pills */
 .signal-pill {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
     text-align: center;
     padding: 12px;
     border-radius: 8px;
-    background-color: #eaeaea;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-    color: #000;
+    background-color: #e0e0e0;
 }
 
 .confidence {
-    font-size: 18px;
-    font-weight: 500;
+    font-size: 16px;
     text-align: center;
     padding: 12px;
-    background-color: #f8f9fa;
+    background-color: #f4f4f4;
     border-radius: 8px;
-    color: #000;
 }
 
 .strength-meter {
     text-align: center;
     font-weight: bold;
-    font-size: 18px;
+    font-size: 16px;
     padding: 12px;
     border-radius: 8px;
-    background-color: #dee2e6;
-    color: #000;
+    background-color: #dcdcdc;
+}
+
+/* Timestamp + Countdown */
+.timestamp, .countdown {
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    margin-top: 5px;
+    color: #555;
 }
 
 /* Signal Row Styling */
@@ -76,52 +88,44 @@ body {
     border-radius: 12px;
     margin-bottom: 20px;
     padding: 15px;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-/* Timestamp & Countdown */
-.timestamp, .countdown {
-    font-size: 16px;
+/* CSV + Log Toggle */
+.export-container {
+    margin-top: 20px;
     text-align: center;
-    color: #000;
-    font-weight: 500;
-    margin-top: 5px;
-}
-
-/* Toggle Styles */
-.mode-toggle {
-    margin: 20px 0;
-    font-size: 18px;
-    color: #000;
 }
 
 .log-toggle {
-    margin-top: 20px;
-    font-size: 16px;
-}
-
-.export-container {
-    margin-top: 15px;
     text-align: center;
+    margin-top: 15px;
 }
 
-/* Responsive Enhancements */
+/* Responsive Adjustments */
 @media (max-width: 768px) {
-    .signal-pill, .confidence, .strength-meter {
-        font-size: 16px;
+    .signal-pill,
+    .confidence,
+    .strength-meter {
+        font-size: 14px;
         padding: 10px;
     }
 
     .timeframe-title {
-        font-size: 20px;
+        font-size: 18px;
     }
 
     .live-price {
-        font-size: 32px;
+        font-size: 24px;
     }
 
-    .timestamp, .countdown {
-        font-size: 14px;
+    .timestamp,
+    .countdown {
+        font-size: 13px;
+    }
+
+    .dashboard-header .header-title {
+        font-size: 28px;
     }
 }
 
