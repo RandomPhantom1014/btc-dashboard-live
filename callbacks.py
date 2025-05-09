@@ -1,18 +1,17 @@
 # callbacks.py
 
-from dash import html, Input, Output, State
+from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 from components.live_price import fetch_live_btc_price
 from utils.data import get_btc_data, append_log
 from utils.signals_logic import generate_signals
 from datetime import datetime, timedelta
-import pytz
 
 previous_price = None
-signal_times = {"5m": None, "10m": None, "15m": None}
+signal_timestamps = {"5m": None, "10m": None, "15m": None}
 
 def register_callbacks(app):
-    
+
     @app.callback(
         Output("live-btc-price", "children"),
         Input("interval-component", "n_intervals")
@@ -31,9 +30,9 @@ def register_callbacks(app):
                 color = "red"
         previous_price = price
 
-        return html.Div([
+        return html.Span([
             html.Span("Live BTC Price: ", style={"fontWeight": "bold", "marginRight": "8px"}),
-            html.Span(f"${float(price):,.2f}", style={"color": color, "fontWeight": "bold", "fontSize": "36px"})
+            html.Span(f"${float(price):,.2f}", style={"color": color, "fontWeight": "bold"})
         ])
 
     @app.callback(
@@ -51,54 +50,49 @@ def register_callbacks(app):
         State("save-logs-toggle", "value")
     )
     def update_signals(n, mode, save_logs):
-        global signal_times
+        global signal_timestamps
         df = get_btc_data(mode)
-        if df is None or df.empty:
+        live_price = fetch_live_btc_price()
+
+        if df is None or df.empty or live_price is None:
             raise PreventUpdate
 
-        now_hst = datetime.utcnow() - timedelta(hours=10)
         now = datetime.utcnow()
 
-        outputs = []
-        for tf, minutes in zip(["5m", "10m", "15m"], [5, 10, 15]):
-            signal, confidence, strength = generate_signals(df, tf)
-            current_price = df["close"].iloc[-1]
+        def label_signal(timeframe, signal, conf, strength):
+            ts = signal_timestamps[timeframe]
+            if signal in ["Go Long", "Go Short"] or ts is None:
+                signal_timestamps[timeframe] = now
+                ts = now
+            elapsed = now - ts
+            remaining = {
+                "5m": timedelta(minutes=5),
+                "10m": timedelta(minutes=10),
+                "15m": timedelta(minutes=15),
+            }[timeframe] - elapsed
 
-            # Set new signal time if it has changed
-            if signal_times[tf] is None or signal != get_previous_signal(tf):
-                signal_times[tf] = now
-                set_previous_signal(tf, signal)
+            min_left = max(0, int(remaining.total_seconds() // 60))
+            sec_left = max(0, int(remaining.total_seconds() % 60))
 
-            # Format time and countdown
-            issued_time = signal_times[tf]
-            hst_time = issued_time - timedelta(hours=10)
-            hst_str = hst_time.strftime("%H:%M:%S")
-            remaining = minutes * 60 - int((now - issued_time).total_seconds())
-            minutes_left = max(0, remaining // 60)
-            seconds_left = max(0, remaining % 60)
-            countdown = f"{minutes_left}:{seconds_left:02d} left"
+            return html.Div([
+                html.Div(signal, style={"fontWeight": "bold"}),
+                html.Div(f"HST: {ts.strftime('%H:%M:%S')}", style={"fontSize": "13px", "marginTop": "3px"}),
+                html.Div(f"{min_left:02d}:{sec_left:02d} left", style={"fontSize": "13px"})
+            ])
 
-            signal_label = html.Div([
-                html.Span(signal, style={"fontWeight": "bold", "marginRight": "12px"}),
-                html.Span(f"{hst_str} HST", style={"fontSize": "14px", "marginRight": "12px"}),
-                html.Span(f"{countdown}", style={"fontSize": "14px", "fontWeight": "bold"})
-            ], style={"backgroundColor": "#e0e0e0", "padding": "6px 12px", "borderRadius": "8px"})
+        s5, c5, st5 = generate_signals(df, "5m", live_price)
+        s10, c10, st10 = generate_signals(df, "10m", live_price)
+        s15, c15, st15 = generate_signals(df, "15m", live_price)
 
-            confidence_label = html.Div(f"Confidence: {confidence}%", className="confidence")
-            strength_label = strength
+        current_price = df["close"].iloc[-1]
 
-            outputs.extend([signal_label, confidence_label, strength_label])
+        if save_logs:
+            append_log("5m", s5, c5, st5, current_price)
+            append_log("10m", s10, c10, st10, current_price)
+            append_log("15m", s15, c15, st15, current_price)
 
-            if save_logs:
-                append_log(tf, signal, confidence, strength, current_price)
-
-        return tuple(outputs)
-
-# These help track signal changes per timeframe
-previous_signals = {"5m": None, "10m": None, "15m": None}
-
-def get_previous_signal(tf):
-    return previous_signals.get(tf)
-
-def set_previous_signal(tf, signal):
-    previous_signals[tf] = signal
+        return (
+            label_signal("5m", s5, c5, st5), f"Confidence: {c5}%", st5,
+            label_signal("10m", s10, c10, st10), f"Confidence: {c10}%", st10,
+            label_signal("15m", s15, c15, st15), f"Confidence: {c15}%", st15
+        )
