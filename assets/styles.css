@@ -2,6 +2,7 @@
 body {
     font-family: 'Segoe UI', sans-serif;
     background-color: #f5f5f5;
+    color: #000; /* Black text across dashboard */
     margin: 0;
     padding: 0;
 }
@@ -11,7 +12,7 @@ body {
 }
 
 /* Header */
-.header-title {
+.dashboard-header h2 {
     font-size: 36px;
     font-weight: bold;
     text-align: center;
@@ -24,20 +25,29 @@ body {
     font-weight: bold;
     text-align: center;
     margin-bottom: 30px;
-    color: #000; /* black font */
+    color: #000;
 }
 
-/* Signal Titles */
+/* Timeframe Titles */
 .timeframe-title {
     font-size: 22px;
     font-weight: 600;
     color: #333;
-    margin-top: 10px;
+    margin-top: 20px;
     margin-bottom: 10px;
     text-align: left;
 }
 
-/* Signal Output Pills */
+/* Signal Row Styling */
+.signal-row {
+    background-color: #ffffff;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    padding: 15px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Pill Styles */
 .signal-pill {
     font-size: 20px;
     font-weight: bold;
@@ -66,16 +76,7 @@ body {
     background-color: #dee2e6;
 }
 
-/* Signal Row Styling */
-.signal-row {
-    background-color: #ffffff;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    padding: 15px;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
-}
-
-/* Toggle Styles */
+/* Toggle Controls */
 .mode-toggle {
     margin: 20px 0;
     font-size: 18px;
@@ -91,9 +92,11 @@ body {
     text-align: center;
 }
 
-/* Responsive Enhancements */
+/* Responsive Layout */
 @media (max-width: 768px) {
-    .signal-pill, .confidence, .strength-meter {
+    .signal-pill,
+    .confidence,
+    .strength-meter {
         font-size: 16px;
         padding: 10px;
     }
@@ -105,4 +108,10 @@ body {
     .live-price {
         font-size: 32px;
     }
+
+    /* Stack signal sections on mobile */
+    .row > .col {
+        margin-bottom: 15px;
+    }
 }
+
