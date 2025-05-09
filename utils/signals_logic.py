@@ -1,10 +1,19 @@
-# utils/signals_logic.py
-
-def generate_signals(df, timeframe, live_price=None):
+def generate_signals(df, timeframe):
     if df is None or df.empty:
         return "Wait", 0, "Weak"
 
-    rows = {"5m": 5, "10m": 10, "15m": 15}.get(timeframe, 5)
+    # Timeframe to row window mapping
+    rows_map = {
+        "5m": 5,
+        "10m": 10,
+        "15m": 15,
+        "1h": 60,
+        "6h": 360,
+        "12h": 720,
+        "24h": 1440
+    }
+
+    rows = rows_map.get(timeframe, 5)
     if len(df) < rows:
         return "Wait", 0, "Weak"
 
@@ -18,7 +27,7 @@ def generate_signals(df, timeframe, live_price=None):
     rs = gain / loss if loss != 0 else 0
     rsi = 100 - (100 / (1 + rs))
 
-    # MACD Calculation
+    # MACD Calculation (basic version)
     ema12 = close_prices.ewm(span=12, adjust=False).mean()
     ema26 = close_prices.ewm(span=26, adjust=False).mean()
     macd = ema12 - ema26
@@ -26,20 +35,12 @@ def generate_signals(df, timeframe, live_price=None):
     macd_recent = macd.iloc[-1]
     signal_recent = signal_line.iloc[-1]
 
-    # Volume Spike
+    # Volume spike detection
     avg_vol = df["volume"].rolling(window=rows).mean().iloc[-1]
     latest_vol = df["volume"].iloc[-1]
     vol_spike = latest_vol > avg_vol * 1.3
 
-    # Micro-level price movement (if live price provided)
-    micro_boost = 0
-    if live_price:
-        last_close = close_prices.iloc[-1]
-        price_change = live_price - last_close
-        if abs(price_change) >= 100:
-            micro_boost += 1 if price_change > 0 else -1
-
-    # Scoring system
+    # Signal logic
     score = 0
     if rsi < 30:
         score += 1
@@ -54,12 +55,10 @@ def generate_signals(df, timeframe, live_price=None):
     if vol_spike:
         score += 1
 
-    score += micro_boost
-
-    # Interpretation
+    # Final signal decision
     if score >= 2:
-        return "Go Long", min(100, 80 + score * 5), "Strong"
+        return "Go Long", 80 + score * 5, "Strong"
     elif score <= -2:
-        return "Go Short", min(100, 80 + abs(score) * 5), "Strong"
+        return "Go Short", 80 + abs(score) * 5, "Strong"
     else:
         return "Wait", 50 + score * 5, "Moderate" if abs(score) == 1 else "Weak"
