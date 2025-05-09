@@ -1,10 +1,22 @@
-from dash import Input, Output, State, html
+# callbacks.py
+
+from dash import Input, Output, State
 from dash.exceptions import PreventUpdate
 from components.live_price import fetch_live_btc_price
 from utils.data import get_btc_data, append_log
 from utils.signals_logic import generate_signals
+from datetime import datetime, timedelta
 
 previous_price = None
+last_signals = {"5m": None, "10m": None, "15m": None}
+last_timestamps = {"5m": None, "10m": None, "15m": None}
+
+def format_countdown(signal_time, duration_minutes):
+    remaining = (signal_time + timedelta(minutes=duration_minutes)) - datetime.utcnow()
+    if remaining.total_seconds() < 0:
+        return "Expired"
+    mins, secs = divmod(int(remaining.total_seconds()), 60)
+    return f"{mins}:{secs:02d}"
 
 def register_callbacks(app):
 
@@ -26,10 +38,13 @@ def register_callbacks(app):
                 color = "red"
         previous_price = price
 
-        return html.Span([
+        return [
             "Live BTC Price: ",
-            html.Span(f"${float(price):,.2f}", style={"color": color, "fontWeight": "bold"})
-        ])
+            {"type": "span", "props": {
+                "style": {"color": color, "fontWeight": "bold"},
+                "children": f"${float(price):,.2f}"
+            }}
+        ]
 
     @app.callback(
         Output("signal-5m", "children"),
@@ -46,23 +61,33 @@ def register_callbacks(app):
         State("save-logs-toggle", "value")
     )
     def update_signals(n, mode, save_logs):
+        global last_signals, last_timestamps
+
         df = get_btc_data(mode)
         if df is None or df.empty:
             raise PreventUpdate
 
-        s5, c5, st5 = generate_signals(df, "5m")
-        s10, c10, st10 = generate_signals(df, "10m")
-        s15, c15, st15 = generate_signals(df, "15m")
+        now = datetime.utcnow()
 
-        current_price = df["close"].iloc[-1]
+        output = []
+        for tf in ["5m", "10m", "15m"]:
+            minutes = int(tf.replace("m", ""))
 
-        if save_logs:
-            append_log("5m", s5, c5, st5, current_price)
-            append_log("10m", s10, c10, st10, current_price)
-            append_log("15m", s15, c15, st15, current_price)
+            if last_timestamps[tf] is None or now - last_timestamps[tf] >= timedelta(minutes=minutes):
+                s, c, st = generate_signals(df, tf)
+                last_signals[tf] = (s, c, st)
+                last_timestamps[tf] = now
+            else:
+                s, c, st = last_signals[tf]
 
-        return (
-            s5, f"Confidence: {c5}%", st5,
-            s10, f"Confidence: {c10}%", st10,
-            s15, f"Confidence: {c15}%", st15
-        )
+            timestamp_display = last_timestamps[tf].strftime("%H:%M:%S HST")
+            countdown = format_countdown(last_timestamps[tf], minutes)
+            label = f"{s} — {timestamp_display} — {countdown} left"
+
+            output.extend([label, f"Confidence: {c}%", st])
+
+            if save_logs:
+                current_price = df["close"].iloc[-1]
+                append_log(tf, s, c, st, current_price)
+
+        return tuple(output)
