@@ -1,46 +1,36 @@
 # components/signals_logic.py
 
-def generate_signal(df, timeframe_label):
+def generate_signal(df, timeframe):
     if df is None or df.empty:
-        return "Wait", "0%", "Low"
+        return "Wait", 0, "Weak"
 
-    # Use the most recent row
-    latest = df.iloc[-1]
-    prev = df.iloc[-2] if len(df) > 1 else latest
-
-    signal = "Wait"
-    confidence = 0
-    strength = "Low"
-
-    # RSI logic
-    rsi = latest["RSI"]
-    if rsi < 30:
-        signal = "Go Long"
-        confidence += 30
-    elif rsi > 70:
-        signal = "Go Short"
-        confidence += 30
+    # Use last N rows based on timeframe
+    if timeframe == "5m":
+        window = 5
+    elif timeframe == "10m":
+        window = 10
+    elif timeframe == "15m":
+        window = 15
     else:
-        confidence += 10
+        return "Wait", 0, "Weak"
 
-    # MACD crossover logic
-    if latest["MACD"] > latest["Signal"] and prev["MACD"] <= prev["Signal"]:
-        signal = "Go Long"
-        confidence += 30
-    elif latest["MACD"] < latest["Signal"] and prev["MACD"] >= prev["Signal"]:
-        signal = "Go Short"
-        confidence += 30
+    data = df.tail(window)
 
-    # Volume spike
-    avg_vol = df["volume"].rolling(window=10).mean().iloc[-1]
-    if latest["volume"] > avg_vol * 1.5:
-        confidence += 20
+    # Extract latest values
+    latest_rsi = data["rsi"].iloc[-1]
+    latest_macd = data["macd"].iloc[-1]
+    latest_close = data["close"].iloc[-1]
+    prev_close = data["close"].iloc[0]
 
-    # Final strength level
-    if confidence >= 70:
-        strength = "High"
-    elif confidence >= 40:
-        strength = "Medium"
+    price_change = latest_close - prev_close
 
-    return signal, f"{confidence}%", strength
+    # Decision logic
+    if latest_rsi < 30 and latest_macd > 0 and price_change > 0:
+        return "Go Long", 92, "Strong"
+    elif latest_rsi > 70 and latest_macd < 0 and price_change < 0:
+        return "Go Short", 89, "Strong"
+    elif abs(price_change) < 15:
+        return "Wait", 60, "Weak"
+    else:
+        return "Wait", 70, "Moderate"
 
