@@ -1,114 +1,115 @@
 from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
+from datetime import datetime, timedelta
 from components.live_price import fetch_live_btc_price
 from utils.data import get_btc_data, append_log
 from utils.signals_logic import generate_signals
-from datetime import datetime, timedelta
-import pytz
 
-# Internal state to track timestamps
-last_timestamps = {}
+previous_price = None
+signal_times = {}
+
+def format_time(dt):
+    return dt.strftime("%I:%M:%S %p HST")
+
+def format_countdown(t_delta):
+    minutes, seconds = divmod(int(t_delta.total_seconds()), 60)
+    return f"{minutes:02}:{seconds:02}"
 
 def register_callbacks(app):
-
     @app.callback(
         Output("live-btc-price", "children"),
         Input("interval-component", "n_intervals")
     )
     def update_btc_price(n):
+        global previous_price
         price = fetch_live_btc_price()
         if price is None:
             return "Live BTC Price: Error"
 
-        return html.Span(f"Live BTC Price: ${price:,.2f}", style={"fontWeight": "bold", "color": "#000"})
+        color = "white"
+        if previous_price is not None:
+            if price > previous_price:
+                color = "limegreen"
+            elif price < previous_price:
+                color = "red"
+        previous_price = price
+
+        return html.Span([
+            html.Span("Live BTC Price: ", style={"fontWeight": "bold", "marginRight": "8px"}),
+            html.Span(f"${float(price):,.2f}", style={"color": color, "fontWeight": "bold"})
+        ])
 
     @app.callback(
         Output("signal-5m", "children"),
         Output("confidence-5m", "children"),
         Output("strength-5m", "children"),
-        Output("timestamp-5m", "children"),
-        Output("countdown-5m", "children"),
-
         Output("signal-10m", "children"),
         Output("confidence-10m", "children"),
         Output("strength-10m", "children"),
-        Output("timestamp-10m", "children"),
-        Output("countdown-10m", "children"),
-
         Output("signal-15m", "children"),
         Output("confidence-15m", "children"),
         Output("strength-15m", "children"),
-        Output("timestamp-15m", "children"),
-        Output("countdown-15m", "children"),
-
         Output("signal-1h", "children"),
         Output("confidence-1h", "children"),
         Output("strength-1h", "children"),
-        Output("timestamp-1h", "children"),
-        Output("countdown-1h", "children"),
-
         Output("signal-6h", "children"),
         Output("confidence-6h", "children"),
         Output("strength-6h", "children"),
-        Output("timestamp-6h", "children"),
-        Output("countdown-6h", "children"),
-
         Output("signal-12h", "children"),
         Output("confidence-12h", "children"),
         Output("strength-12h", "children"),
-        Output("timestamp-12h", "children"),
-        Output("countdown-12h", "children"),
-
         Output("signal-24h", "children"),
         Output("confidence-24h", "children"),
         Output("strength-24h", "children"),
-        Output("timestamp-24h", "children"),
-        Output("countdown-24h", "children"),
-
         Input("interval-component", "n_intervals"),
         State("mode-toggle", "value"),
         State("save-logs-toggle", "value")
     )
     def update_signals(n, mode, save_logs):
-        df = get_btc_data(mode)
-        if df is None or df.empty:
-            raise PreventUpdate
-
+        now = datetime.utcnow()
         timeframes = {
-            "5m": 5,
-            "10m": 10,
-            "15m": 15,
-            "1h": 60,
-            "6h": 360,
-            "12h": 720,
-            "24h": 1440
+            "5m": 60,
+            "10m": 60,
+            "15m": 60,
+            "1h": 300,
+            "6h": 900,
+            "12h": 3600,
+            "24h": 3600
         }
 
-        output = []
-        now = datetime.utcnow()
-        hst = pytz.timezone("Pacific/Honolulu")
+        results = {}
+        for tf, granularity in timeframes.items():
+            df = get_btc_data(mode, granularity=granularity)
+            if df is None or df.empty:
+                return ["Error"] * 21
 
-        for tf, minutes in timeframes.items():
-            signal, conf, strength = generate_signals(df, tf)
-            price = df["close"].iloc[-1]
+            signal, confidence, strength = generate_signals(df, tf)
+            signal_times[tf] = now
 
-            # Record HST timestamp for signal
-            last_timestamps.setdefault(tf, now)
-            last_timestamps[tf] = now  # update every cycle
-
-            signal_time = last_timestamps[tf].astimezone(hst).strftime("%H:%M:%S HST")
-            remaining = (last_timestamps[tf] + timedelta(minutes=minutes)) - now
-            remaining_str = f"{int(remaining.total_seconds() // 60)}m {int(remaining.total_seconds() % 60)}s"
+            current_price = df["close"].iloc[-1]
 
             if save_logs:
-                append_log(tf, signal, conf, strength, price)
+                append_log(tf, signal, confidence, strength, current_price)
 
-            output.extend([
-                signal,
-                f"Confidence: {conf}%",
-                strength,
-                f"Time: {signal_time}",
-                f"⏳ {remaining_str}"
+            issued_at = format_time(now)
+            ends_in = format_countdown(timedelta(minutes=int(tf.replace("m", "").replace("h", "")) * (1 if "m" in tf else 60)))
+
+            signal_label = html.Div([
+                html.Span(signal, style={"fontWeight": "bold", "marginRight": "10px"}),
+                html.Span(f"⏰ {issued_at}"),
+                html.Br(),
+                html.Span(f"⌛ {ends_in} remaining")
             ])
 
-        return output
+            results[tf] = (signal_label, f"Confidence: {confidence}%", strength)
+
+        return (
+            *results["5m"],
+            *results["10m"],
+            *results["15m"],
+            *results["1h"],
+            *results["6h"],
+            *results["12h"],
+            *results["24h"]
+        )
+
