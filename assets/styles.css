@@ -16,7 +16,6 @@ body {
     font-weight: bold;
     text-align: center;
     margin-bottom: 20px;
-    color: black;
 }
 
 /* Live BTC Price */
@@ -25,15 +24,15 @@ body {
     font-weight: bold;
     text-align: center;
     margin-bottom: 30px;
-    color: black;
+    color: #000; /* black font */
 }
 
-/* Signal Row Titles */
+/* Signal Titles */
 .timeframe-title {
     font-size: 22px;
     font-weight: 600;
     color: #333;
-    margin-top: 20px;
+    margin-top: 10px;
     margin-bottom: 10px;
     text-align: left;
 }
