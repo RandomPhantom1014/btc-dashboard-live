@@ -3,59 +3,61 @@
 from dash import html, dcc
 import plotly.graph_objs as go
 
-def render_indicators(rsi_data=None, macd_data=None, volume_data=None):
-    # Provide default empty lists if data isn't passed
-    rsi_data = rsi_data or []
-    macd_data = macd_data or []
-    volume_data = volume_data or []
+def render_indicators(df):
+    # Assume RSI, MACD, Signal, and Volume columns are already present in the DataFrame
+    rsi_fig = go.Figure()
+    rsi_fig.add_trace(go.Scatter(
+        x=df["timestamp"],
+        y=df["RSI"],
+        mode="lines",
+        name="RSI"
+    ))
+    rsi_fig.update_layout(
+        height=200,
+        margin=dict(l=30, r=30, t=30, b=30),
+        yaxis_title="RSI",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
+
+    macd_fig = go.Figure()
+    macd_fig.add_trace(go.Scatter(
+        x=df["timestamp"],
+        y=df["MACD"],
+        mode="lines",
+        name="MACD"
+    ))
+    macd_fig.add_trace(go.Scatter(
+        x=df["timestamp"],
+        y=df["Signal"],
+        mode="lines",
+        name="Signal"
+    ))
+    macd_fig.update_layout(
+        height=200,
+        margin=dict(l=30, r=30, t=30, b=30),
+        yaxis_title="MACD",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
+
+    volume_fig = go.Figure()
+    volume_fig.add_trace(go.Bar(
+        x=df["timestamp"],
+        y=df["volume"],
+        name="Volume"
+    ))
+    volume_fig.update_layout(
+        height=200,
+        margin=dict(l=30, r=30, t=30, b=30),
+        yaxis_title="Volume",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
 
     return html.Div([
-        html.Div([
-            html.H5("RSI Indicator"),
-            dcc.Graph(
-                config={"displayModeBar": False},
-                figure=go.Figure(
-                    data=[go.Scatter(y=rsi_data, mode="lines", name="RSI")],
-                    layout=go.Layout(
-                        height=200,
-                        margin=dict(l=30, r=30, t=30, b=30),
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        yaxis_title="RSI"
-                    )
-                )
-            )
-        ]),
-        html.Div([
-            html.H5("MACD Indicator"),
-            dcc.Graph(
-                config={"displayModeBar": False},
-                figure=go.Figure(
-                    data=[go.Scatter(y=macd_data, mode="lines", name="MACD")],
-                    layout=go.Layout(
-                        height=200,
-                        margin=dict(l=30, r=30, t=30, b=30),
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        yaxis_title="MACD"
-                    )
-                )
-            )
-        ]),
-        html.Div([
-            html.H5("Volume"),
-            dcc.Graph(
-                config={"displayModeBar": False},
-                figure=go.Figure(
-                    data=[go.Bar(y=volume_data, name="Volume")],
-                    layout=go.Layout(
-                        height=200,
-                        margin=dict(l=30, r=30, t=30, b=30),
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        yaxis_title="Volume"
-                    )
-                )
-            )
-        ])
-    ], style={"padding": "10px"})
+        dcc.Graph(figure=rsi_fig),
+        dcc.Graph(figure=macd_fig),
+        dcc.Graph(figure=volume_fig)
+    ])
+
