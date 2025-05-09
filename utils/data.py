@@ -1,9 +1,10 @@
 # utils/data.py
 
-import pandas as pd
 import os
-import csv
+import pandas as pd
+import requests
 from datetime import datetime
+import csv
 
 LOG_FILE = "logs/signal_log.csv"
 BACKTEST_FILE = "data/backtest_btc.csv"
@@ -28,35 +29,29 @@ def append_log(timeframe, signal, confidence, strength, price):
             price
         ])
 
-def calculate_rsi(series, period=14):
-    delta = series.diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-
-    avg_gain = gain.rolling(window=period, min_periods=period).mean()
-    avg_loss = loss.rolling(window=period, min_periods=period).mean()
-
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi.fillna(0)
-
-def calculate_macd(series, fast=12, slow=26):
-    exp1 = series.ewm(span=fast, adjust=False).mean()
-    exp2 = series.ewm(span=slow, adjust=False).mean()
-    return (exp1 - exp2).fillna(0)
-
 def get_btc_data(mode="live"):
+    if mode == "backtest":
+        if os.path.exists(BACKTEST_FILE):
+            df = pd.read_csv(BACKTEST_FILE)
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df.set_index('timestamp', inplace=True)
+            return df
+        else:
+            print("Backtest file not found.")
+            return pd.DataFrame()
+
+    # Live mode via Coinbase API
     try:
-        df = pd.read_csv(BACKTEST_FILE)
-        df.rename(columns=lambda col: col.lower(), inplace=True)
+        url = "https://api.pro.coinbase.com/products/BTC-USD/candles?granularity=60"
+        response = requests.get(url)
+        candles = response.json()
 
-        if "timestamp" not in df.columns:
-            raise ValueError("CSV must have a 'timestamp' column.")
+        df = pd.DataFrame(candles, columns=["time", "low", "high", "open", "close", "volume"])
+        df["timestamp"] = pd.to_datetime(df["time"], unit="s")
+        df.set_index("timestamp", inplace=True)
+        df = df.sort_index()
+        return df[["open", "high", "low", "close", "volume"]]
 
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
-        df["rsi"] = calculate_rsi(df["close"])
-        df["macd"] = calculate_macd(df["close"])
-        return df
     except Exception as e:
-        print("Error loading BTC data:", e)
+        print(f"Error fetching live BTC data: {e}")
         return pd.DataFrame()
