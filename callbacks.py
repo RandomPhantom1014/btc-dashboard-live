@@ -1,12 +1,24 @@
 from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
+from components.live_price import fetch_live_btc_price
 from utils.data import get_btc_data, append_log
 from utils.signals_logic import generate_signals
-from components.live_price import fetch_live_btc_price
 from datetime import datetime, timedelta
+import pytz
 
-# Store last signal times
-last_signal_times = {}
+# Global cache for signal timestamps
+signal_times = {}
+
+# Mapping from timeframe to timedelta for countdown
+timeframe_to_delta = {
+    "5m": timedelta(minutes=5),
+    "10m": timedelta(minutes=10),
+    "15m": timedelta(minutes=15),
+    "1h": timedelta(hours=1),
+    "6h": timedelta(hours=6),
+    "12h": timedelta(hours=12),
+    "24h": timedelta(hours=24),
+}
 
 def register_callbacks(app):
 
@@ -18,33 +30,18 @@ def register_callbacks(app):
         price = fetch_live_btc_price()
         if price is None:
             return "Live BTC Price: Error"
+
         return html.Span([
             html.Span("Live BTC Price: ", style={"fontWeight": "bold", "marginRight": "8px"}),
             html.Span(f"${price:,.2f}", style={"color": "black", "fontWeight": "bold"})
         ])
 
     @app.callback(
-        Output("signal-5m", "children"), Output("confidence-5m", "children"), Output("strength-5m", "children"),
-        Output("timestamp-5m", "children"), Output("countdown-5m", "children"),
-
-        Output("signal-10m", "children"), Output("confidence-10m", "children"), Output("strength-10m", "children"),
-        Output("timestamp-10m", "children"), Output("countdown-10m", "children"),
-
-        Output("signal-15m", "children"), Output("confidence-15m", "children"), Output("strength-15m", "children"),
-        Output("timestamp-15m", "children"), Output("countdown-15m", "children"),
-
-        Output("signal-1h", "children"), Output("confidence-1h", "children"), Output("strength-1h", "children"),
-        Output("timestamp-1h", "children"), Output("countdown-1h", "children"),
-
-        Output("signal-6h", "children"), Output("confidence-6h", "children"), Output("strength-6h", "children"),
-        Output("timestamp-6h", "children"), Output("countdown-6h", "children"),
-
-        Output("signal-12h", "children"), Output("confidence-12h", "children"), Output("strength-12h", "children"),
-        Output("timestamp-12h", "children"), Output("countdown-12h", "children"),
-
-        Output("signal-24h", "children"), Output("confidence-24h", "children"), Output("strength-24h", "children"),
-        Output("timestamp-24h", "children"), Output("countdown-24h", "children"),
-
+        [Output(f"signal-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
+        [Output(f"confidence-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
+        [Output(f"strength-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
+        [Output(f"timestamp-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
+        [Output(f"countdown-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]],
         Input("interval-component", "n_intervals"),
         State("mode-toggle", "value"),
         State("save-logs-toggle", "value")
@@ -54,44 +51,43 @@ def register_callbacks(app):
         if df is None or df.empty:
             raise PreventUpdate
 
-        timeframes = {
-            "5m": 5, "10m": 10, "15m": 15,
-            "1h": 60, "6h": 360, "12h": 720, "24h": 1440
-        }
+        timeframes = ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]
 
-        outputs = []
+        signal_outputs = []
+        confidence_outputs = []
+        strength_outputs = []
+        timestamp_outputs = []
+        countdown_outputs = []
 
-        for tf, mins in timeframes.items():
-            signal, confidence, strength = generate_signals(df, tf)
-            now = datetime.utcnow()
+        now = datetime.now(pytz.timezone("Pacific/Honolulu"))
 
-            # Store/update signal time
-            last_time = last_signal_times.get(tf, now)
-            if tf not in last_signal_times or signal != "Wait":
-                last_signal_times[tf] = now
-                last_time = now
+        for tf in timeframes:
+            sig, conf, strength = generate_signals(df, tf)
+            current_price = df["close"].iloc[-1]
 
-            # Countdown
-            time_passed = (now - last_time).total_seconds()
-            time_remaining = max(0, (mins * 60) - time_passed)
-            mins_left = int(time_remaining // 60)
-            secs_left = int(time_remaining % 60)
-            countdown = f"{mins_left}m {secs_left}s left"
+            # Timestamp logic
+            signal_times.setdefault(tf, now)
+            if sig != "Wait":
+                signal_times[tf] = now
 
-            timestamp_str = f"Signal @ {last_time.strftime('%H:%M:%S')} HST"
+            time_str = signal_times[tf].strftime("HST %H:%M:%S")
+            countdown = max(signal_times[tf] + timeframe_to_delta[tf] - now, timedelta(seconds=0))
+            countdown_str = f"⏳ {str(countdown).split('.')[0]} remaining"
 
-            # Log it
+            # Append data
+            signal_outputs.append(sig)
+            confidence_outputs.append(f"Confidence: {conf}%")
+            strength_outputs.append(strength)
+            timestamp_outputs.append(f"🕒 {time_str}")
+            countdown_outputs.append(countdown_str)
+
             if save_logs:
-                current_price = df["close"].iloc[-1]
-                append_log(tf, signal, confidence, strength, current_price)
+                append_log(tf, sig, conf, strength, current_price)
 
-            # Format return values
-            outputs.extend([
-                signal,
-                f"Confidence: {confidence}%",
-                strength,
-                timestamp_str,
-                countdown
-            ])
-
-        return tuple(outputs)
+        return (
+            *signal_outputs,
+            *confidence_outputs,
+            *strength_outputs,
+            *timestamp_outputs,
+            *countdown_outputs
+        )
