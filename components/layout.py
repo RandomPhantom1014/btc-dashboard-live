@@ -1,85 +1,129 @@
 # components/layout.py
 
-import dash
-import dash_bootstrap_components as dbc
 from dash import html, dcc
-import pandas as pd
-
-from components.header import render_header
+import plotly.graph_objs as go
 
 def create_layout():
-    return dbc.Container([
-        dcc.Interval(id="interval-component", interval=15 * 1000, n_intervals=0),
+    return html.Div(
+        id="main-container",
+        children=[
+            html.H1("BTC Signal Dashboard", style={"textAlign": "center"}),
 
-        # Header
-        render_header(),
+            html.Div([
+                html.Div([
+                    html.Label("Theme:"),
+                    dcc.RadioItems(
+                        id="theme-toggle",
+                        options=[
+                            {"label": "Light", "value": "light"},
+                            {"label": "Dark", "value": "dark"}
+                        ],
+                        value="light",
+                        labelStyle={"display": "inline-block", "margin-right": "10px"}
+                    ),
+                ], style={"margin-bottom": "10px"}),
 
-        # Theme Toggle
-        html.Div([
-            html.Label("Theme:"),
-            dcc.RadioItems(
-                id="theme-toggle",
-                options=[
-                    {"label": "Light", "value": "light"},
-                    {"label": "Dark", "value": "dark"},
-                ],
-                value="light",
-                inline=True,
-                labelStyle={"margin-right": "15px"}
-            ),
-        ], className="theme-toggle"),
+                html.Div([
+                    html.Label("Signal Mode:"),
+                    dcc.RadioItems(
+                        id="mode-toggle",
+                        options=[
+                            {"label": "Live", "value": "live"},
+                            {"label": "Backtest", "value": "backtest"}
+                        ],
+                        value="live",
+                        labelStyle={"display": "inline-block", "margin-right": "10px"}
+                    ),
+                ], style={"margin-bottom": "10px"}),
 
-        # Mode Toggle
-        html.Div([
-            html.Label("Signal Mode:"),
-            dcc.RadioItems(
-                id="signal-mode",
-                options=[
-                    {"label": "Live", "value": "live"},
-                    {"label": "Backtest", "value": "backtest"},
-                ],
-                value="backtest",
-                inline=True,
-                labelStyle={"margin-right": "15px"}
-            ),
-        ], className="mode-toggle"),
+                html.Div(id="price-display", style={"margin-bottom": "10px", "font-weight": "bold"}),
 
-        # Live BTC Price Display
-        html.Div(id="live-btc-price", className="live-price"),
+                dcc.Graph(id="candlestick-chart", style={"height": "400px"}),
+            ], style={"padding": "0 20px"}),
 
-        # Candlestick Chart
-        html.Div([
-            dcc.Graph(id="candlestick-chart", config={"displayModeBar": False}),
-        ], className="chart-container"),
+            html.Div([
+                html.Div(id="signal-5m", className="signal-box"),
+                html.Div(id="signal-10m", className="signal-box"),
+                html.Div(id="signal-15m", className="signal-box"),
+            ], id="signals-container", style={"padding": "0 20px"}),
 
-        # Signal Output: 5 Minute
-        html.Div([
-            html.H5("5 Minute Signal"),
-            html.Div(id="five-min-signal", className="signal-pill")
-        ], className="signal-section"),
+            html.Button("Export CSV", id="export-button", style={"margin": "20px"}),
+            dcc.Download(id="download-dataframe-csv"),
 
-        # Signal Output: 10 Minute
-        html.Div([
-            html.H5("10 Minute Signal"),
-            html.Div(id="ten-min-signal", className="signal-pill")
-        ], className="signal-section"),
+            html.Div([
+                dcc.Checklist(
+                    options=[{"label": "Save Logs", "value": "save"}],
+                    id="save-logs-toggle",
+                    value=[],
+                    style={"margin": "20px 0"}
+                )
+            ]),
 
-        # Signal Output: 15 Minute
-        html.Div([
-            html.H5("15 Minute Signal"),
-            html.Div(id="fifteen-min-signal", className="signal-pill")
-        ], className="signal-section"),
+            dcc.Interval(id="update-interval", interval=60 * 1000, n_intervals=0),  # update every 60s
+        ]
+    )
+# components/layout.py
 
-        # CSV Export
-        html.Div(
-            dbc.Button("Export CSV", id="export-button", color="primary", className="mt-3"),
-            className="export-container"
-        ),
+from dash import html, dcc
+import plotly.graph_objs as go
 
-        # Log Saving Toggle
-        html.Div(
-            dbc.Checkbox(id="save-logs-toggle", value=False, className="mt-2"),
-            className="log-toggle"
-        )
-    ], fluid=True, className="main-container")
+def create_layout():
+    return html.Div(
+        id="main-container",
+        children=[
+            html.H1("BTC Signal Dashboard", style={"textAlign": "center"}),
+
+            html.Div([
+                html.Div([
+                    html.Label("Theme:"),
+                    dcc.RadioItems(
+                        id="theme-toggle",
+                        options=[
+                            {"label": "Light", "value": "light"},
+                            {"label": "Dark", "value": "dark"}
+                        ],
+                        value="light",
+                        labelStyle={"display": "inline-block", "margin-right": "10px"}
+                    ),
+                ], style={"margin-bottom": "10px"}),
+
+                html.Div([
+                    html.Label("Signal Mode:"),
+                    dcc.RadioItems(
+                        id="mode-toggle",
+                        options=[
+                            {"label": "Live", "value": "live"},
+                            {"label": "Backtest", "value": "backtest"}
+                        ],
+                        value="live",
+                        labelStyle={"display": "inline-block", "margin-right": "10px"}
+                    ),
+                ], style={"margin-bottom": "10px"}),
+
+                html.Div(id="price-display", style={"margin-bottom": "10px", "font-weight": "bold"}),
+
+                dcc.Graph(id="candlestick-chart", style={"height": "400px"}),
+            ], style={"padding": "0 20px"}),
+
+            html.Div([
+                html.Div(id="signal-5m", className="signal-box"),
+                html.Div(id="signal-10m", className="signal-box"),
+                html.Div(id="signal-15m", className="signal-box"),
+            ], id="signals-container", style={"padding": "0 20px"}),
+
+            html.Button("Export CSV", id="export-button", style={"margin": "20px"}),
+            dcc.Download(id="download-dataframe-csv"),
+
+            html.Div([
+                dcc.Checklist(
+                    options=[{"label": "Save Logs", "value": "save"}],
+                    id="save-logs-toggle",
+                    value=[],
+                    style={"margin": "20px 0"}
+                )
+            ]),
+
+            dcc.Interval(id="update-interval", interval=60 * 1000, n_intervals=0),  # update every 60s
+        ]
+    )
 
