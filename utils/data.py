@@ -1,3 +1,5 @@
+# utils/data.py
+
 import os
 import pandas as pd
 import requests
@@ -27,7 +29,7 @@ def append_log(timeframe, signal, confidence, strength, price):
             price
         ])
 
-def get_btc_data(mode="live", granularity=60):
+def get_btc_data(mode="live"):
     if mode == "backtest":
         if os.path.exists(BACKTEST_FILE):
             df = pd.read_csv(BACKTEST_FILE)
@@ -38,9 +40,9 @@ def get_btc_data(mode="live", granularity=60):
             print("Backtest file not found.")
             return pd.DataFrame()
 
-    # Live mode via Coinbase API
     try:
-        url = f"https://api.pro.coinbase.com/products/BTC-USD/candles?granularity={granularity}"
+        # Live mode – use 1-minute candles for flexibility across all timeframes
+        url = "https://api.pro.coinbase.com/products/BTC-USD/candles?granularity=60"
         response = requests.get(url)
         candles = response.json()
 
