@@ -1,8 +1,7 @@
-# components/layout.py
-
 import dash
 import dash_bootstrap_components as dbc
 from dash import html, dcc
+
 from components.header import render_header
 from components.strength_meter import render_strength_meter
 
@@ -33,19 +32,20 @@ def create_layout():
             ),
 
             dbc.Row([
-                # Left Column (Short-Term)
+
+                # Left Column: Short-term Signals
                 dbc.Col([
-                    *generate_signal_block("5 Minute", "5m"),
-                    *generate_signal_block("10 Minute", "10m"),
-                    *generate_signal_block("15 Minute", "15m")
+                    create_signal_block("5m"),
+                    create_signal_block("10m"),
+                    create_signal_block("15m"),
                 ], md=6),
 
-                # Right Column (Long-Term)
+                # Right Column: Long-term Signals
                 dbc.Col([
-                    *generate_signal_block("1 Hour", "1h"),
-                    *generate_signal_block("6 Hour", "6h"),
-                    *generate_signal_block("12 Hour", "12h"),
-                    *generate_signal_block("24 Hour", "24h")
+                    create_signal_block("1h"),
+                    create_signal_block("6h"),
+                    create_signal_block("12h"),
+                    create_signal_block("24h"),
                 ], md=6),
             ]),
 
@@ -67,19 +67,18 @@ def create_layout():
         className="main-container"
     )
 
+def create_signal_block(timeframe):
+    return html.Div([
+        html.Div(f"{timeframe.upper()} Signal", className="timeframe-title"),
 
-def generate_signal_block(label, key):
-    return [
-        html.Div([
-            html.Div(f"{label} Signal", className="timeframe-title"),
-            dbc.Row([
-                dbc.Col(html.Div(id=f"signal-{key}", className="signal-pill"), width=4),
-                dbc.Col(html.Div(id=f"confidence-{key}", className="confidence"), width=4),
-                dbc.Col(html.Div(render_strength_meter(key), id=f"strength-{key}"), width=4),
-            ]),
-            dbc.Row([
-                dbc.Col(html.Div(id=f"timestamp-{key}", className="timestamp"), width=6),
-                dbc.Col(html.Div(id=f"countdown-{key}", className="countdown"), width=6)
-            ])
-        ], className="signal-row")
-    ]
+        dbc.Row([
+            dbc.Col(html.Div(id=f"signal-{timeframe}", className="signal-pill"), width=4),
+            dbc.Col(html.Div(id=f"confidence-{timeframe}", className="confidence"), width=4),
+            dbc.Col(html.Div(render_strength_meter(timeframe), id=f"strength-{timeframe}"), width=4),
+        ]),
+
+        dbc.Row([
+            dbc.Col(html.Div(id=f"timestamp-{timeframe}", className="timestamp"), width=6),
+            dbc.Col(html.Div(id=f"countdown-{timeframe}", className="countdown"), width=6),
+        ]),
+    ], className="signal-row")
