@@ -28,18 +28,10 @@ def generate_signals(df, timeframe):
     vol_spike = latest_vol > avg_vol * 1.3
 
     score = 0
-    if rsi < 30:
-        score += 1
-    elif rsi > 70:
-        score -= 1
-
-    if macd_recent > signal_recent:
-        score += 1
-    else:
-        score -= 1
-
-    if vol_spike:
-        score += 1
+    if rsi < 30: score += 1
+    elif rsi > 70: score -= 1
+    score += 1 if macd_recent > signal_recent else -1
+    if vol_spike: score += 1
 
     if score >= 2:
         return "Go Long", 80 + score * 5, "Strong"
