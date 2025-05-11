@@ -31,8 +31,8 @@ def get_btc_data(mode="live"):
     if mode == "backtest":
         if os.path.exists(BACKTEST_FILE):
             df = pd.read_csv(BACKTEST_FILE)
-            df["timestamp"] = pd.to_datetime(df["timestamp"])
-            df.set_index("timestamp", inplace=True)
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df.set_index('timestamp', inplace=True)
             return df
         else:
             print("Backtest file not found.")
@@ -42,7 +42,6 @@ def get_btc_data(mode="live"):
         url = "https://api.pro.coinbase.com/products/BTC-USD/candles?granularity=60"
         response = requests.get(url)
         candles = response.json()
-
         df = pd.DataFrame(candles, columns=["time", "low", "high", "open", "close", "volume"])
         df["timestamp"] = pd.to_datetime(df["time"], unit="s")
         df.set_index("timestamp", inplace=True)
@@ -50,5 +49,5 @@ def get_btc_data(mode="live"):
         return df[["open", "high", "low", "close", "volume"]]
 
     except Exception as e:
-        print("Error fetching live BTC data:", e)
+        print(f"Error fetching live BTC data: {e}")
         return pd.DataFrame()
