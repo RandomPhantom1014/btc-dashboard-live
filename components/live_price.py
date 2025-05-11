@@ -1,5 +1,3 @@
-# components/live_price.py
-
 import requests
 
 def fetch_live_btc_price():
