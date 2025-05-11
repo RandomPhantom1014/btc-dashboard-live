@@ -8,11 +8,28 @@ from utils.signals_logic import generate_signals
 from datetime import datetime, timedelta
 import pytz
 
-# Track previous live price
+# Track timestamps for countdown logic
+signal_times = {
+    "5m": None, "10m": None, "15m": None,
+    "1h": None, "6h": None, "12h": None, "24h": None
+}
 previous_price = None
-last_signal_times = {}
+
+def format_hst(dt):
+    hst = pytz.timezone("Pacific/Honolulu")
+    return dt.astimezone(hst).strftime("%Y-%m-%d %I:%M %p HST")
+
+def calculate_countdown(start_time, duration):
+    if start_time is None:
+        return "Waiting..."
+    remaining = (start_time + timedelta(minutes=duration)) - datetime.utcnow()
+    if remaining.total_seconds() <= 0:
+        return "Refreshing..."
+    minutes, seconds = divmod(int(remaining.total_seconds()), 60)
+    return f"{minutes}m {seconds}s left"
 
 def register_callbacks(app):
+
     @app.callback(
         Output("live-btc-price", "children"),
         Input("interval-component", "n_intervals")
@@ -37,11 +54,11 @@ def register_callbacks(app):
         ])
 
     @app.callback(
-        [Output(f"signal-{t}", "children") for t in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
-        [Output(f"confidence-{t}", "children") for t in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
-        [Output(f"strength-{t}", "children") for t in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
-        [Output(f"timestamp-{t}", "children") for t in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
-        [Output(f"countdown-{t}", "children") for t in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]],
+        [Output(f"signal-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
+        [Output(f"confidence-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
+        [Output(f"strength-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
+        [Output(f"timestamp-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]] +
+        [Output(f"countdown-{tf}", "children") for tf in ["5m", "10m", "15m", "1h", "6h", "12h", "24h"]],
         Input("interval-component", "n_intervals"),
         State("mode-toggle", "value"),
         State("save-logs-toggle", "value")
@@ -52,43 +69,27 @@ def register_callbacks(app):
             raise PreventUpdate
 
         timeframes = {
-            "5m": 5,
-            "10m": 10,
-            "15m": 15,
-            "1h": 60,
-            "6h": 360,
-            "12h": 720,
-            "24h": 1440,
+            "5m": 5, "10m": 10, "15m": 15,
+            "1h": 60, "6h": 360, "12h": 720, "24h": 1440
         }
 
-        utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
-        signal_outputs, confidence_outputs, strength_outputs, timestamps, countdowns = [], [], [], [], []
+        signals, confidences, strengths, timestamps, countdowns = [], [], [], [], []
 
-        for tf, minutes in timeframes.items():
-            signal, confidence, strength = generate_signals(df, tf)
-            signal_outputs.append(signal)
-            confidence_outputs.append(f"Confidence: {confidence}%")
-            strength_outputs.append(strength)
+        for tf, duration in timeframes.items():
+            s, c, st = generate_signals(df, tf)
+            signals.append(s)
+            confidences.append(f"Confidence: {c}%")
+            strengths.append(st)
 
-            # Save signal timestamp for countdown logic
-            if signal != "Wait":
-                last_signal_times[tf] = utc_now
+            now = datetime.utcnow()
+            if s != "Wait":
+                signal_times[tf] = now
 
-            signal_time = last_signal_times.get(tf)
-            if signal_time:
-                local_time = signal_time.astimezone(pytz.timezone("Pacific/Honolulu"))
-                timestamps.append(f"Issued: {local_time.strftime('%H:%M:%S HST')}")
+            timestamps.append("Issued: " + format_hst(signal_times[tf]) if signal_times[tf] else "Pending...")
+            countdowns.append(calculate_countdown(signal_times[tf], duration))
 
-                elapsed = utc_now - signal_time
-                remaining = max(0, minutes * 60 - int(elapsed.total_seconds()))
-                countdowns.append(f"Time left: {remaining // 60:02d}:{remaining % 60:02d}")
-            else:
-                timestamps.append("Issued: --")
-                countdowns.append("Time left: --:--")
-
-            # Save to logs if enabled
             if save_logs:
                 current_price = df["close"].iloc[-1]
-                append_log(tf, signal, confidence, strength, current_price)
+                append_log(tf, s, c, st, current_price)
 
-        return signal_outputs + confidence_outputs + strength_outputs + timestamps + countdowns
+        return signals + confidences + strengths + timestamps + countdowns
