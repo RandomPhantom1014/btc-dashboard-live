@@ -4,6 +4,7 @@ body {
     background-color: #f5f5f5;
     margin: 0;
     padding: 0;
+    color: #000;
 }
 
 .main-container {
@@ -27,24 +28,17 @@ body {
     color: #000;
 }
 
-/* Signal Section Titles */
+/* Signal Row Titles */
 .timeframe-title {
     font-size: 22px;
     font-weight: 600;
     color: #333;
     margin-top: 20px;
     margin-bottom: 10px;
+    text-align: left;
 }
 
-/* Signal Output Styling */
-.signal-row {
-    background-color: #ffffff;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    padding: 15px;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
-}
-
+/* Signal Output Pills */
 .signal-pill {
     font-size: 20px;
     font-weight: bold;
@@ -73,14 +67,16 @@ body {
     background-color: #dee2e6;
 }
 
-.timestamp,
-.countdown {
-    text-align: center;
-    font-size: 14px;
-    color: #666;
+/* Signal Row Styling */
+.signal-row {
+    background-color: #ffffff;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    padding: 15px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
 }
 
-/* Button & Toggle */
+/* Toggle Styles */
 .mode-toggle {
     margin: 20px 0;
     font-size: 18px;
@@ -96,27 +92,15 @@ body {
     text-align: center;
 }
 
-/* Force horizontal columns for large screens */
-@media (min-width: 768px) {
-    .dbc-row {
-        display: flex !important;
-        flex-wrap: wrap;
-        justify-content: space-between;
-    }
-
-    .dbc-col {
-        flex: 0 0 48%;
-        max-width: 48%;
-    }
+/* Countdown & Timestamp */
+.timestamp, .countdown {
+    font-size: 16px;
+    color: #666;
+    text-align: center;
 }
 
-/* Stack on mobile */
-@media (max-width: 767px) {
-    .dbc-col {
-        flex: 100%;
-        max-width: 100%;
-    }
-
+/* Responsive Enhancements */
+@media (max-width: 768px) {
     .signal-pill, .confidence, .strength-meter {
         font-size: 16px;
         padding: 10px;
@@ -128,5 +112,9 @@ body {
 
     .live-price {
         font-size: 32px;
+    }
+
+    .signal-row {
+        margin-bottom: 25px;
     }
 }
