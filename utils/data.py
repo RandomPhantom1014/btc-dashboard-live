@@ -1,3 +1,5 @@
+# utils/data.py
+
 import os
 import pandas as pd
 import requests
@@ -39,9 +41,11 @@ def get_btc_data(mode="live"):
             return pd.DataFrame()
 
     try:
-        url = "https://api.pro.coinbase.com/products/BTC-USD/candles?granularity=60"
+        # Fetch 1,500 1-minute candles (enough for 24h signal)
+        url = "https://api.pro.coinbase.com/products/BTC-USD/candles?granularity=60&limit=1500"
         response = requests.get(url)
         candles = response.json()
+
         df = pd.DataFrame(candles, columns=["time", "low", "high", "open", "close", "volume"])
         df["timestamp"] = pd.to_datetime(df["time"], unit="s")
         df.set_index("timestamp", inplace=True)
