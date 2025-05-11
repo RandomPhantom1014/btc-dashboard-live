@@ -1,5 +1,3 @@
-# utils/data.py
-
 import os
 import pandas as pd
 import requests
@@ -41,12 +39,29 @@ def get_btc_data(mode="live"):
             return pd.DataFrame()
 
     try:
-        # Live mode – use 1-minute candles for flexibility across all timeframes
+        # Fetch 1440 1-minute candles (approx. 24h)
         url = "https://api.pro.coinbase.com/products/BTC-USD/candles?granularity=60"
-        response = requests.get(url)
-        candles = response.json()
+        df_list = []
 
-        df = pd.DataFrame(candles, columns=["time", "low", "high", "open", "close", "volume"])
+        # Coinbase only returns 300 rows per call, so we iterate
+        now = int(datetime.utcnow().timestamp())
+        seconds_per_chunk = 60 * 300  # 5 hours
+        for i in range(5):  # Up to 1500 candles = 25 hours
+            end = now - (i * seconds_per_chunk)
+            start = end - seconds_per_chunk
+            chunk_url = f"{url}&start={start}&end={end}"
+            response = requests.get(chunk_url)
+            if response.status_code != 200:
+                continue
+            candles = response.json()
+            df_chunk = pd.DataFrame(candles, columns=["time", "low", "high", "open", "close", "volume"])
+            df_list.append(df_chunk)
+
+        if not df_list:
+            print("No data returned from Coinbase.")
+            return pd.DataFrame()
+
+        df = pd.concat(df_list, ignore_index=True)
         df["timestamp"] = pd.to_datetime(df["time"], unit="s")
         df.set_index("timestamp", inplace=True)
         df = df.sort_index()
