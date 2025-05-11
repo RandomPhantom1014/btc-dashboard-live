@@ -16,7 +16,6 @@ body {
     font-weight: bold;
     text-align: center;
     margin-bottom: 20px;
-    color: #000;
 }
 
 /* Live BTC Price */
@@ -33,12 +32,19 @@ body {
     font-size: 22px;
     font-weight: 600;
     color: #333;
-    margin-top: 10px;
+    margin-top: 20px;
     margin-bottom: 10px;
-    text-align: left;
 }
 
-/* Signal Output Pills */
+/* Signal Output Styling */
+.signal-row {
+    background-color: #ffffff;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    padding: 15px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
 .signal-pill {
     font-size: 20px;
     font-weight: bold;
@@ -47,7 +53,6 @@ body {
     border-radius: 8px;
     background-color: #eaeaea;
     box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-    color: #000;
 }
 
 .confidence {
@@ -57,7 +62,6 @@ body {
     padding: 12px;
     background-color: #f8f9fa;
     border-radius: 8px;
-    color: #000;
 }
 
 .strength-meter {
@@ -67,36 +71,24 @@ body {
     padding: 12px;
     border-radius: 8px;
     background-color: #dee2e6;
-    color: #000;
 }
 
-.timestamp, .countdown {
+.timestamp,
+.countdown {
     text-align: center;
     font-size: 14px;
-    color: #555;
-    margin-top: 6px;
+    color: #666;
 }
 
-/* Signal Row Styling */
-.signal-row {
-    background-color: #ffffff;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    padding: 15px;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
-}
-
-/* Toggle Styles */
+/* Button & Toggle */
 .mode-toggle {
     margin: 20px 0;
     font-size: 18px;
-    color: #000;
 }
 
 .log-toggle {
     margin-top: 20px;
     font-size: 16px;
-    color: #000;
 }
 
 .export-container {
@@ -104,13 +96,28 @@ body {
     text-align: center;
 }
 
-/* Responsive Enhancements */
-@media (max-width: 768px) {
-    .signal-pill,
-    .confidence,
-    .strength-meter,
-    .timestamp,
-    .countdown {
+/* Force horizontal columns for large screens */
+@media (min-width: 768px) {
+    .dbc-row {
+        display: flex !important;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .dbc-col {
+        flex: 0 0 48%;
+        max-width: 48%;
+    }
+}
+
+/* Stack on mobile */
+@media (max-width: 767px) {
+    .dbc-col {
+        flex: 100%;
+        max-width: 100%;
+    }
+
+    .signal-pill, .confidence, .strength-meter {
         font-size: 16px;
         padding: 10px;
     }
@@ -121,13 +128,5 @@ body {
 
     .live-price {
         font-size: 32px;
-    }
-
-    .mode-toggle {
-        font-size: 16px;
-    }
-
-    .signal-row {
-        margin-bottom: 25px;
     }
 }
