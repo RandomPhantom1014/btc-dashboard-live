@@ -22,29 +22,41 @@ def register_callbacks(app):
         Input('interval-component', 'n_intervals')
     )
     def update_btc_price(n):
-        df = fetch_live_data()
-        price = df['close'].iloc[-1]
-        return f"${price:,.2f}"
+        try:
+            df = fetch_live_data()
+            if df.empty:
+                return "Price unavailable"
+            price = df['close'].iloc[-1]
+            return f"${price:,.2f}"
+        except Exception as e:
+            print(f"[ERROR - update_btc_price] {e}")
+            return "Error fetching price"
 
 def make_callback(timeframe):
     def callback(n):
-        df = fetch_live_data()
-        signal_data = generate_signals(df, timeframe)
+        try:
+            df = fetch_live_data()
+            if df.empty:
+                return "No data", "", "neutral", "", ""
 
-        hst = pytz.timezone("Pacific/Honolulu")
-        timestamp = datetime.now(hst).strftime('%Y-%m-%d %H:%M:%S HST')
+            signal_data = generate_signals(df, timeframe)
 
-        expiry_map = {
-            '5m': 5, '10m': 10, '15m': 15, '1h': 60, '6h': 360
-        }
-        expiry = datetime.now() + timedelta(minutes=expiry_map[timeframe])
-        countdown = str(expiry - datetime.now()).split('.')[0]
+            hst = pytz.timezone("Pacific/Honolulu")
+            timestamp = datetime.now(hst).strftime('%Y-%m-%d %H:%M:%S HST')
 
-        return (
-            signal_data['signal'],
-            f"Confidence: {signal_data['confidence']}%",
-            signal_data['strength_class'],
-            f"Updated: {timestamp}",
-            f"Expires in: {countdown}"
-        )
+            expiry_map = {'5m': 5, '10m': 10, '15m': 15, '1h': 60, '6h': 360}
+            expiry = datetime.now() + timedelta(minutes=expiry_map[timeframe])
+            countdown = str(expiry - datetime.now()).split('.')[0]
+
+            return (
+                signal_data['signal'],
+                f"Confidence: {signal_data['confidence']}%",
+                signal_data['strength_class'],
+                f"Updated: {timestamp}",
+                f"Expires in: {countdown}"
+            )
+        except Exception as e:
+            print(f"[ERROR - signal callback {timeframe}] {e}")
+            return "Error", "", "neutral", "", ""
     return callback
+
