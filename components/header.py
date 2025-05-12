@@ -2,14 +2,14 @@ from dash import html
 
 def render_header():
     return html.Div(
-        className="dashboard-header",
+        id='header',
+        style={'textAlign': 'center', 'marginBottom': '20px'},
         children=[
-            html.H2("📈 BTC Signal Dashboard", style={
-                "textAlign": "center",
-                "color": "#000",  # Black font for visibility on light background
-                "paddingTop": "10px",
-                "paddingBottom": "10px",
-                "fontWeight": "bold"
-            })
+            html.H1('BTC Signal Dashboard', style={'marginBottom': '5px'}),
+            html.Div(id='btc-price-text', style={
+                'fontSize': '24px',
+                'fontWeight': 'bold',
+                'color': '#2a9d8f'
+            }),
         ]
     )
