@@ -38,7 +38,9 @@ def serve_layout():
                 ]
             ),
 
-            dcc.Interval(id='interval-component', interval=30000, n_intervals=0)
+            # Intervals: 1s countdowns, 30s updates
+            dcc.Interval(id='interval-slow', interval=30000, n_intervals=0),   # 30s signals + price
+            dcc.Interval(id='interval-fast', interval=1000, n_intervals=0)     # 1s countdowns
         ],
         style={'fontFamily': 'Arial', 'backgroundColor': '#f9f9f9', 'padding': '10px'}
     )
