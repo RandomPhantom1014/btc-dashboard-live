@@ -11,7 +11,7 @@ def register_callbacks(app):
         @app.callback(
             Output(f'{tf}-signal', 'children'),
             Output(f'{tf}-confidence', 'children'),
-            Output(f'{tf}-pill', 'className'),
+            Output(f'{tf}-signal', 'className'),  # <== Note: we apply pill styling here
             Output(f'{tf}-timestamp', 'children'),
             Output(f'{tf}-countdown', 'children'),
             Input('interval-slow', 'n_intervals'),
@@ -43,7 +43,7 @@ def register_callbacks(app):
                 countdown
             )
 
-    # Fast BTC price update every 5 seconds
+    # Live BTC price updater (every 5s)
     @app.callback(
         Output('btc-price-text', 'children'),
         Input('interval-btc', 'n_intervals')
