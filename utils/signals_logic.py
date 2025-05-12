@@ -1,31 +1,38 @@
 import pandas as pd
 import numpy as np
+import os
+from datetime import datetime
+import pytz
+import csv
+
+# Toggleable flags
+DEBUG = True
+LOG_SIGNALS = True
+
+# Ensure logs folder exists
+LOG_FOLDER = "logs"
+if LOG_SIGNALS and not os.path.exists(LOG_FOLDER):
+    os.makedirs(LOG_FOLDER)
 
 def generate_signals(df, timeframe):
     df = df.copy()
 
-    # === Timeframe-Specific Logic === #
+    # === Timeframe-Specific Settings === #
     if timeframe in ['5m', '10m', '15m']:
-        shift_window = 5               # 5 candles ~ 5 minutes
-        price_threshold = 100          # Short-term price move target
+        shift_window = 5
+        price_threshold = 100
         rsi_period = 14
-        macd_fast = 12
-        macd_slow = 26
-        macd_signal = 9
+        macd_fast, macd_slow, macd_signal = 12, 26, 9
     elif timeframe in ['1h', '6h']:
-        shift_window = 60 if timeframe == '1h' else 360  # 1 candle = 1 minute
-        price_threshold = 1000         # Futures price move target
-        rsi_period = 21                # Smoother RSI
-        macd_fast = 24
-        macd_slow = 52
-        macd_signal = 18
+        shift_window = 60 if timeframe == '1h' else 360
+        price_threshold = 1000
+        rsi_period = 21
+        macd_fast, macd_slow, macd_signal = 24, 52, 18
     else:
         shift_window = 5
         price_threshold = 100
         rsi_period = 14
-        macd_fast = 12
-        macd_slow = 26
-        macd_signal = 9
+        macd_fast, macd_slow, macd_signal = 12, 26, 9
 
     # === Indicators === #
     df['RSI'] = compute_rsi(df['close'], rsi_period)
@@ -41,6 +48,7 @@ def generate_signals(df, timeframe):
     momentum = recent['momentum']
     volume_spike = recent['volume_spike']
     price_delta = recent['price_delta']
+    current_price = recent['close']
 
     # === Signal Logic === #
     signal = "Wait"
@@ -68,13 +76,31 @@ def generate_signals(df, timeframe):
         confidence = 50
         strength_class = "neutral"
 
+    # === Debug Output === #
+    if DEBUG:
+        print(f"[DEBUG] {timeframe.upper()} | Price: {current_price:.2f} | RSI: {rsi:.2f} | MACD: {macd:.4f} | Δ: {price_delta:.2f} | Momentum: {momentum:.2f} | Volume Spike: {volume_spike} → {signal} ({confidence}%)")
+
+    # === CSV Logging === #
+    if LOG_SIGNALS:
+        log_to_csv(timeframe, {
+            "timestamp": datetime.now(pytz.timezone("Pacific/Honolulu")).strftime('%Y-%m-%d %H:%M:%S'),
+            "price": round(current_price, 2),
+            "rsi": round(rsi, 2),
+            "macd": round(macd, 4),
+            "momentum": round(momentum, 2),
+            "price_delta": round(price_delta, 2),
+            "volume_spike": volume_spike,
+            "signal": signal,
+            "confidence": confidence,
+            "strength_class": strength_class
+        })
+
     return {
         'signal': signal,
         'confidence': confidence,
         'strength_class': strength_class
     }
 
-# === Indicators === #
 def compute_rsi(series, period=14):
     delta = series.diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
@@ -88,3 +114,13 @@ def compute_macd(series, fast=12, slow=26, signal=9):
     macd_line = exp1 - exp2
     signal_line = macd_line.ewm(span=signal, adjust=False).mean()
     return macd_line - signal_line
+
+def log_to_csv(timeframe, data):
+    filename = os.path.join(LOG_FOLDER, f"{timeframe}_signals.csv")
+    file_exists = os.path.isfile(filename)
+
+    with open(filename, mode='a', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=data.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(data)
