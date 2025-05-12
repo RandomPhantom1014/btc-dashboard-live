@@ -1,5 +1,5 @@
 from dash import html, dcc
-from components.header import render_header
+from header import render_header  # ✅ updated import
 
 def serve_layout():
     return html.Div([
@@ -14,6 +14,6 @@ def serve_layout():
 
         html.Div(id='signals-container'),
 
-        dcc.Interval(id='interval-slow', interval=30000, n_intervals=0),  # Signal updates
-        dcc.Interval(id='interval-btc', interval=5000, n_intervals=0),    # Live BTC price updates
+        dcc.Interval(id='interval-slow', interval=30000, n_intervals=0),  # Signal logic updates
+        dcc.Interval(id='interval-btc', interval=5000, n_intervals=0),    # BTC price updates
     ])
