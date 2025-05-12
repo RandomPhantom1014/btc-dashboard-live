@@ -3,30 +3,42 @@ import numpy as np
 
 def generate_signals(df, timeframe):
     df = df.copy()
+
+    # Indicators
     df['RSI'] = compute_rsi(df['close'], 14)
     df['MACD'] = compute_macd(df['close'])
+    df['momentum'] = df['close'] - df['close'].shift(5)
+    df['avg_volume'] = df['volume'].rolling(window=20).mean()
+    df['volume_spike'] = df['volume'] > 1.5 * df['avg_volume']
+    df['price_delta'] = df['close'] - df['close'].shift(5)
 
     recent = df.iloc[-1]
     rsi = recent['RSI']
     macd = recent['MACD']
-    volume = recent['volume']
+    momentum = recent['momentum']
+    volume_spike = recent['volume_spike']
+    price_delta = recent['price_delta']
 
     signal = "Wait"
     confidence = 50
     strength_class = "neutral"
 
-    if rsi < 30 and macd > 0:
+    if rsi > 58 and macd > 0 and momentum > 0:
         signal = "Go Long"
-        confidence = 80
+        confidence = 85 if volume_spike else 75
         strength_class = "strong-long"
-    elif rsi > 70 and macd < 0:
+    elif rsi < 45 and macd < 0 and momentum < 0:
         signal = "Go Short"
-        confidence = 80
+        confidence = 85 if volume_spike else 75
         strength_class = "strong-short"
-    elif 45 < rsi < 55:
-        signal = "Wait"
-        confidence = 55
-        strength_class = "neutral"
+    elif rsi > 65 and price_delta < -100:
+        signal = "Go Short"
+        confidence = 70
+        strength_class = "weak-short"
+    elif rsi < 40 and price_delta > 100:
+        signal = "Go Long"
+        confidence = 70
+        strength_class = "weak-long"
     else:
         signal = "Wait"
         confidence = 50
@@ -48,5 +60,6 @@ def compute_rsi(series, period=14):
 def compute_macd(series, fast=12, slow=26, signal=9):
     exp1 = series.ewm(span=fast, adjust=False).mean()
     exp2 = series.ewm(span=slow, adjust=False).mean()
-    macd = exp1 - exp2
-    return macd - macd.ewm(span=signal, adjust=False).mean()
+    macd_line = exp1 - exp2
+    signal_line = macd_line.ewm(span=signal, adjust=False).mean()
+    return macd_line - signal_line
