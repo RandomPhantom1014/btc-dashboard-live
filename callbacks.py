@@ -55,7 +55,12 @@ def register_callbacks(app):
     )
     def update_signals(n, mode, save_logs):
         df = get_btc_data(mode)
+        print("\n--- DEBUG: DataFrame Fetched ---")
+        print(df.tail())
+        print(f"Row count: {len(df)}")
+
         if df is None or df.empty:
+            print("DEBUG: Empty DataFrame. Preventing update.")
             raise PreventUpdate
 
         durations = {"5m": 5, "10m": 10, "15m": 15, "1h": 60, "6h": 360, "12h": 720, "24h": 1440}
@@ -63,6 +68,8 @@ def register_callbacks(app):
 
         for tf, minutes in durations.items():
             signal, confidence, strength = generate_signals(df, tf)
+            print(f"DEBUG: {tf} — Signal: {signal}, Confidence: {confidence}, Strength: {strength}")
+
             signals.append(signal)
             confidences.append(f"Confidence: {confidence}%")
             strengths.append(f"Strength: {strength}")
@@ -78,4 +85,5 @@ def register_callbacks(app):
                 current_price = df["close"].iloc[-1]
                 append_log(tf, signal, confidence, strength, current_price)
 
+        print("DEBUG: Returning all signal outputs...\n")
         return signals + confidences + strengths + timestamps + countdowns
