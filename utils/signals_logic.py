@@ -1,50 +1,52 @@
+import pandas as pd
+import numpy as np
+
 def generate_signals(df, timeframe):
-    if df is None or df.empty:
-        return "Wait", 0, "Weak"
+    df = df.copy()
+    df['RSI'] = compute_rsi(df['close'], 14)
+    df['MACD'] = compute_macd(df['close'])
 
-    tf_map = {
-        "5m": 5, "10m": 10, "15m": 15,
-        "1h": 60, "6h": 360, "12h": 720, "24h": 1440
-    }
-    rows = tf_map.get(timeframe, 5)
-    if len(df) < rows:
-        return "Wait", 0, "Weak"
+    recent = df.iloc[-1]
+    rsi = recent['RSI']
+    macd = recent['MACD']
+    volume = recent['volume']
 
-    recent = df.tail(rows)
-    close_prices = recent["close"]
+    signal = "Wait"
+    confidence = 50
+    strength_class = "neutral"
 
-    # RSI
-    delta = close_prices.diff().dropna()
-    gain = delta.where(delta > 0, 0).mean()
-    loss = -delta.where(delta < 0, 0).mean()
-    rs = gain / loss if loss != 0 else 0
-    rsi = 100 - (100 / (1 + rs))
-
-    # MACD
-    ema12 = close_prices.ewm(span=12, adjust=False).mean()
-    ema26 = close_prices.ewm(span=26, adjust=False).mean()
-    macd = ema12 - ema26
-    signal_line = macd.ewm(span=9, adjust=False).mean()
-    macd_recent = macd.iloc[-1]
-    signal_recent = signal_line.iloc[-1]
-
-    # Volume Spike
-    avg_vol = df["volume"].rolling(window=rows).mean().iloc[-1]
-    latest_vol = df["volume"].iloc[-1]
-    vol_spike = latest_vol > avg_vol * 1.3
-
-    # Scoring
-    score = 0
-    if rsi < 30: score += 1
-    elif rsi > 70: score -= 1
-    if macd_recent > signal_recent: score += 1
-    else: score -= 1
-    if vol_spike: score += 1
-
-    if score >= 2:
-        return "Go Long", 80 + score * 5, "Strong"
-    elif score <= -2:
-        return "Go Short", 80 + abs(score) * 5, "Strong"
+    if rsi < 30 and macd > 0:
+        signal = "Go Long"
+        confidence = 80
+        strength_class = "strong-long"
+    elif rsi > 70 and macd < 0:
+        signal = "Go Short"
+        confidence = 80
+        strength_class = "strong-short"
+    elif 45 < rsi < 55:
+        signal = "Wait"
+        confidence = 55
+        strength_class = "neutral"
     else:
-        return "Wait", 50 + score * 5, "Moderate" if abs(score) == 1 else "Weak"
+        signal = "Wait"
+        confidence = 50
+        strength_class = "neutral"
 
+    return {
+        'signal': signal,
+        'confidence': confidence,
+        'strength_class': strength_class
+    }
+
+def compute_rsi(series, period=14):
+    delta = series.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs))
+
+def compute_macd(series, fast=12, slow=26, signal=9):
+    exp1 = series.ewm(span=fast, adjust=False).mean()
+    exp2 = series.ewm(span=slow, adjust=False).mean()
+    macd = exp1 - exp2
+    return macd - macd.ewm(span=signal, adjust=False).mean()
