@@ -17,7 +17,8 @@ def serve_layout():
         html.H2(id='btc-price-text', children="Loading BTC Price...", style={
             'textAlign': 'center',
             'fontSize': '30px',
-            'marginTop': '10px'
+            'marginTop': '10px',
+            'marginBottom': '30px'
         }),
 
         html.Div([
@@ -33,9 +34,9 @@ def serve_layout():
                 make_signal_block("1h"),
                 make_signal_block("6h")
             ], style={'width': '48%', 'display': 'inline-block', 'padding': '10px'})
-        ], style={'display': 'flex', 'justifyContent': 'space-between'}),
+        ], style={'display': 'flex', 'justifyContent': 'space-between', 'flexWrap': 'wrap'}),
 
-        dcc.Interval(id='interval-slow', interval=30000, n_intervals=0),  # every 30s
-        dcc.Interval(id='interval-btc', interval=5000, n_intervals=0)     # every 5s
+        dcc.Interval(id='interval-slow', interval=30000, n_intervals=0),  # Signal refresh every 30s
+        dcc.Interval(id='interval-btc', interval=5000, n_intervals=0)     # BTC price refresh every 5s
     ])
 
