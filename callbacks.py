@@ -1,58 +1,56 @@
-from dash import Output, Input, callback
-from utils.signals_logic import generate_signal
-from utils.data import fetch_live_price
+from dash import Output, Input, callback, dcc
+from utils.data import get_latest_price
+from utils.signals_logic import generate_signals_for_timeframe
 from datetime import datetime, timedelta
 import pytz
 
-hst = pytz.timezone('US/Hawaii')
-timeframes = ['5m', '10m', '15m', '1h', '6h']
-
-# Generate outputs and inputs dynamically
-output_list = []
-for tf in timeframes:
-    output_list.extend([
-        Output(f"{tf}-signal", "children"),
-        Output(f"{tf}-confidence", "children"),
-        Output(f"{tf}-signal", "className"),
-        Output(f"{tf}-timestamp", "children"),
-        Output(f"{tf}-countdown", "children")
-    ])
-output_list.insert(0, Output("xrp-price-text", "children"))  # Live price at top
+# Define your timeframes and movement targets
+TIMEFRAMES = {
+    "5m": {"minutes": 5, "target": 0.01},
+    "10m": {"minutes": 10, "target": 0.02},
+    "15m": {"minutes": 15, "target": 0.02},
+    "1h": {"minutes": 60, "target": 0.05},
+    "6h": {"minutes": 360, "target": 0.10}
+}
 
 @callback(
-    output_list,
-    Input("interval-component", "n_intervals"),
-    Input("mode-toggle", "value")
+    Output("xrp-price-text", "children"),
+    Input("interval-component", "n_intervals")
 )
-def update_signals(n, mode):
-    price = fetch_live_price()
-    now = datetime.now(hst).strftime('%H:%M:%S HST')
+def update_price(n):
+    return f"${get_latest_price():,.4f}"
 
-    all_outputs = [f"XRP Price: ${price:.4f}"]  # live price at top
+# Create callbacks for each timeframe
+for timeframe_id, config in TIMEFRAMES.items():
+    @callback(
+        Output(f"{timeframe_id}-signal", "children"),
+        Output(f"{timeframe_id}-confidence", "children"),
+        Output(f"{timeframe_id}-signal", "className"),
+        Output(f"{timeframe_id}-timestamp", "children"),
+        Output(f"{timeframe_id}-countdown", "children"),
+        Input("interval-component", "n_intervals"),
+        prevent_initial_call="initial_duplicate"
+    )
+    def update_signal(n, timeframe_id=timeframe_id, config=config):
+        signal, confidence, strength = generate_signals_for_timeframe(
+            timeframe_id, config["minutes"], config["target"]
+        )
 
-    for tf in timeframes:
-        signal, confidence = generate_signal(price, tf, mode)
+        # Get HST timestamp
+        hst_time = datetime.utcnow() - timedelta(hours=10)
+        timestamp = hst_time.strftime("%H:%M:%S")
 
-        if signal == "Go Long":
-            class_name = "pill pill-long"
-        elif signal == "Go Short":
-            class_name = "pill pill-short"
+        # Calculate expiration countdown
+        now = datetime.utcnow()
+        expiry_time = now + timedelta(minutes=config["minutes"])
+        countdown = str(timedelta(seconds=int((expiry_time - now).total_seconds())))
+
+        # Determine style class from strength
+        if strength == "strong":
+            color_class = "pill pill-strong"
+        elif strength == "moderate":
+            color_class = "pill pill-moderate"
         else:
-            class_name = "pill pill-wait"
+            color_class = "pill pill-weak"
 
-        countdown_time = {
-            '5m': 5, '10m': 10, '15m': 15,
-            '1h': 60, '6h': 360
-        }.get(tf, 5)
-
-        expire_time = (datetime.now(hst) + timedelta(minutes=countdown_time)).strftime('%H:%M:%S')
-
-        all_outputs.extend([
-            signal,
-            f"Confidence: {confidence}%",
-            class_name,
-            f"Signal Time: {now}",
-            f"Expires: {expire_time}"
-        ])
-
-    return all_outputs
+        return signal, f"{confidence}%", color_class, f"📅 {timestamp} HST", f"⏳ {countdown}"
