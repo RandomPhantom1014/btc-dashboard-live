@@ -1,28 +1,28 @@
-from datetime import datetime
-import random
+import numpy as np
 
-def get_rsi_mock():
-    # In real usage, replace this with actual RSI data
-    return random.randint(40, 65)
+def generate_signals_for_timeframe(prices, rsi_values, timeframe, is_short_term=True):
+    if len(prices) < 2 or len(prices) != len(rsi_values):
+        return "Wait", 0
 
-def generate_signals_for_timeframe(timeframe):
-    def callback(n):
-        now = datetime.now().strftime("%H:%M:%S")
-        rsi = get_rsi_mock()
-        
-        # Define move target thresholds
-        if timeframe in ["5m", "10m", "15m"]:
-            move_target = 0.01 if rsi < 45 else 0.02  # 1–2¢
-        else:
-            move_target = 0.05 if rsi < 45 else 0.10  # 5–10¢
+    recent_price = prices[-1]
+    previous_price = prices[-2]
+    price_change = recent_price - previous_price
 
-        # Trading logic based on RSI
-        if rsi > 55:
-            direction = "GO LONG"
-        elif rsi < 45:
-            direction = "GO SHORT"
-        else:
-            direction = "WAIT"
+    recent_rsi = rsi_values[-1]
 
-        return f"{timeframe.upper()} Signal: {direction} | Target: ${move_target:.2f} | RSI: {rsi} | {now}"
-    return callback
+    if is_short_term:
+        # Short-term signal logic: 1–2 cents
+        movement_required = 0.01 if abs(price_change) >= 0.01 else 0.02
+    else:
+        # Long-term signal logic: 5–10 cents
+        movement_required = 0.05 if abs(price_change) >= 0.05 else 0.10
+
+    # Signal confidence is proportional to how far RSI is from thresholds
+    if recent_rsi > 55 and price_change >= movement_required:
+        confidence = min(100, int((recent_rsi - 55) * 4 + (price_change / movement_required) * 50))
+        return "Go Long", confidence
+    elif recent_rsi < 45 and price_change <= -movement_required:
+        confidence = min(100, int((45 - recent_rsi) * 4 + (-price_change / movement_required) * 50))
+        return "Go Short", confidence
+    else:
+        return "Wait", 0
