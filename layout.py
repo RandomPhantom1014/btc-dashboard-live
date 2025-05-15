@@ -1,42 +1,23 @@
-from dash import html, dcc
-from header import render_header
+from dash import html
 
 def serve_layout():
-    def make_signal_block(tf):
-        return html.Div([
-            html.Strong(f"{tf.upper()} Signal"),
-            html.Div(id=f"{tf}-signal", className='pill neutral'),
-            html.Div(id=f"{tf}-confidence"),
-            html.Div(id=f"{tf}-timestamp"),
-            html.Div(id=f"{tf}-countdown")
-        ], className='signal-block', style={'marginBottom': '20px'})
-
     return html.Div([
-        render_header(),
-
-        html.H2(id='btc-price-text', children="Loading XRP Price...", style={
-            'textAlign': 'center',
-            'fontSize': '30px',
-            'marginTop': '10px',
-            'marginBottom': '30px'
-        }),
+        html.H2("XRP Signal Dashboard", style={'textAlign': 'center'}),
+        html.H4(id='xrp-price-text', style={'textAlign': 'center', 'marginBottom': '20px'}),
 
         html.Div([
             html.Div([
-                html.H4("Short-Term Signals", style={'textAlign': 'center'}),
-                make_signal_block("5m"),
-                make_signal_block("10m"),
-                make_signal_block("15m")
-            ], style={'width': '48%', 'display': 'inline-block', 'padding': '10px'}),
+                html.H5("Short-Term Signals", style={'textAlign': 'center'}),
+                html.Div(id='signal-5m', className='signal-box'),
+                html.Div(id='signal-10m', className='signal-box'),
+                html.Div(id='signal-15m', className='signal-box'),
+            ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
 
             html.Div([
-                html.H4("Futures Signals", style={'textAlign': 'center'}),
-                make_signal_block("1h"),
-                make_signal_block("6h")
-            ], style={'width': '48%', 'display': 'inline-block', 'padding': '10px'})
-        ], style={'display': 'flex', 'justifyContent': 'space-between', 'flexWrap': 'wrap'}),
-
-        dcc.Interval(id='interval-slow', interval=30000, n_intervals=0),
-        dcc.Interval(id='interval-btc', interval=5000, n_intervals=0)
+                html.H5("Futures Signals", style={'textAlign': 'center'}),
+                html.Div(id='signal-1h', className='signal-box'),
+                html.Div(id='signal-6h', className='signal-box'),
+            ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top', 'float': 'right'}),
+        ])
     ])
 
