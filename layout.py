@@ -1,33 +1,33 @@
 from dash import html, dcc
 from header import render_header
 
-timeframes = ['5m', '10m', '15m', '1h', '6h']
-
-def signal_block(tf):
-    return html.Div([
-        html.Div(f"{tf.upper()} Signal", className="signal-title"),
-        html.Div(id=f"{tf}-signal", className="pill pill-wait"),
-        html.Div(id=f"{tf}-confidence", className="confidence-text"),
-        html.Div(id=f"{tf}-timestamp", className="timestamp-text"),
-        html.Div(id=f"{tf}-countdown", className="countdown-text"),
-    ], className="signal-row")
+def signal_display_block(interval_id):
+    return html.Div(className="signal-row", children=[
+        html.Div(id=f"{interval_id}-timestamp", className="signal-timestamp"),
+        html.Div(id=f"{interval_id}-signal", className="signal-pill"),
+        html.Div(id=f"{interval_id}-confidence", className="signal-confidence"),
+        html.Div(id=f"{interval_id}-countdown", className="signal-countdown"),
+    ])
 
 def serve_layout():
-    return html.Div([
-        render_header(),
-        html.Div(id="xrp-price-text", className="live-price"),
-        html.Div([
-            html.Div([signal_block(tf) for tf in timeframes[:3]], className="left-signals"),
-            html.Div([signal_block(tf) for tf in timeframes[3:]], className="right-signals")
-        ], className="signal-board"),
-        dcc.Interval(id='interval-component', interval=5*1000, n_intervals=0),
-        dcc.RadioItems(
-            id='mode-toggle',
-            options=[
-                {'label': 'Live', 'value': 'live'},
-                {'label': 'Backtest', 'value': 'backtest'}
-            ],
-            value='live',
-            className='mode-toggle'
-        )
-    ], className="main-container")
+    return html.Div(
+        className="main-container",
+        children=[
+            render_header(),
+            html.Div(id="xrp-price-text", className="live-price"),
+            html.Div(className="signals-container", children=[
+                html.Div(className="short-term-signals", children=[
+                    html.H3("Short-Term XRP Signals"),
+                    signal_display_block("5m"),
+                    signal_display_block("10m"),
+                    signal_display_block("15m"),
+                ]),
+                html.Div(className="long-term-signals", children=[
+                    html.H3("Long-Term XRP Futures Signals"),
+                    signal_display_block("1h"),
+                    signal_display_block("6h"),
+                ])
+            ]),
+            dcc.Interval(id="update-interval", interval=5000, n_intervals=0)
+        ]
+    )
