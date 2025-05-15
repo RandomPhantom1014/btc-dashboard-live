@@ -1,36 +1,42 @@
-import requests
-from dash import Input, Output
-from datetime import datetime, timedelta
-from utils.signals_logic import get_signal_for_interval
-from utils.data import get_coinbase_price
+from dash import Output, Input, State, callback_context
+from utils.signals_logic import generate_signal
+from utils.data import get_live_price
+import datetime
+from app import app
 
-def register_callbacks(app):
+# List of all timeframes to loop through
+timeframes = ['5m', '10m', '15m', '1h', '6h']
+
+@app.callback(
+    Output('xrp-price-text', 'children'),
+    Input('interval-component', 'n_intervals')
+)
+def update_xrp_price(n):
+    price = get_live_price()
+    return f"${price:.4f}"
+
+# Dynamically create callbacks for each timeframe
+for tf in timeframes:
     @app.callback(
-        Output('xrp-price-text', 'children'),
-        [Input('interval-component', 'n_intervals')]
+        Output(f'{tf}-signal', 'children'),
+        Output(f'{tf}-confidence', 'children'),
+        Output(f'{tf}-signal', 'className'),
+        Output(f'{tf}-timestamp', 'children'),
+        Output(f'{tf}-countdown', 'children'),
+        Input('interval-component', 'n_intervals'),
+        State('mode-toggle', 'value'),
+        prevent_initial_call='initial_duplicate'
     )
-    def update_price(n):
-        price = get_coinbase_price("XRP-USD")
-        if price:
-            return f"XRP Price: ${price:.4f}"
+    def update_signals(n, mode, tf=tf):
+        signal_data = generate_signal(tf, mode)
+        signal = signal_data['signal']
+        confidence = signal_data['confidence']
+        color = f"pill pill-{signal.lower()}"
+        now = datetime.datetime.now().strftime("%H:%M:%S HST")
+
+        if 'expires_in' in signal_data:
+            countdown = f"{signal_data['expires_in']}s"
         else:
-            return "XRP Price: Unavailable"
+            countdown = "N/A"
 
-    for interval_id, minutes in [('5m', 5), ('10m', 10), ('15m', 15), ('1h', 60), ('6h', 360)]:
-        @app.callback(
-            Output(f'signal-{interval_id}', 'children'),
-            [Input('interval-component', 'n_intervals')],
-        )
-        def update_signal(n, interval_id=interval_id, minutes=minutes):
-            now = datetime.utcnow()
-            end_time = now + timedelta(minutes=minutes)
-            price = get_coinbase_price("XRP-USD")
-            if price is None:
-                return ["No Data", "N/A", "N/A"]
-
-            signal, confidence = get_signal_for_interval(minutes, "XRP-USD", price)
-            return [
-                f"{signal}",
-                f"Confidence: {confidence}%",
-                f"{now.strftime('%Y-%m-%d %H:%M:%S')} UTC | Expires in: {minutes}m 0s"
-            ]
+        return signal, f"{confidence}%", color, now, countdown
