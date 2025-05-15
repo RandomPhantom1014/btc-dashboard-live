@@ -1,21 +1,21 @@
-def get_signal_for_interval(minutes, symbol, current_price):
-    import random
-    rsi = random.uniform(30, 70)
-    confidence = 50
+import random
 
-    if minutes <= 15:
-        price_target = 0.02  # 1–2 cents
+def generate_signal(prices, interval, rsi, macd, volume, threshold_up=0.02, threshold_down=0.01):
+    latest_price = prices[-1]
+    price_change = (latest_price - prices[0]) / prices[0]
+
+    if interval in ['1h', '6h']:
+        up_move = 0.10  # 10 cents
+        down_move = -0.05  # 5 cents
     else:
-        price_target = 0.10  # 5–10 cents
+        up_move = 0.02  # 2 cents
+        down_move = -0.01  # 1 cent
 
-    if rsi > 55:
-        signal = "Go Long"
-        confidence = int((rsi - 55) * 2 + 50)
-    elif rsi < 45:
-        signal = "Go Short"
-        confidence = int((45 - rsi) * 2 + 50)
-    else:
-        signal = "Wait"
-        confidence = 50
+    if rsi > 55 and macd > 0 and volume > 0:
+        if price_change >= up_move:
+            return "Go Long", random.uniform(70, 90)
+    elif rsi < 45 and macd < 0 and volume > 0:
+        if price_change <= down_move:
+            return "Go Short", random.uniform(70, 90)
 
-    return signal, min(confidence, 100)
+    return "Wait", random.uniform(50, 60)
