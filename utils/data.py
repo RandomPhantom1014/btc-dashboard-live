@@ -1,16 +1,12 @@
 import requests
-import pandas as pd
-from datetime import datetime, timedelta
 
-def fetch_live_data():
-    url = "https://api.pro.coinbase.com/products/XRP-USD/candles?granularity=60"
-    response = requests.get(url)
-    if response.status_code != 200:
-        return pd.DataFrame()
-
-    data = response.json()
-    df = pd.DataFrame(data, columns=["time", "low", "high", "open", "close", "volume"])
-    df["time"] = pd.to_datetime(df["time"], unit="s")
-    df.sort_values("time", inplace=True)
-    df.reset_index(drop=True, inplace=True)
-    return df
+def get_coinbase_price(symbol="XRP-USD"):
+    url = f"https://api.coinbase.com/v2/prices/{symbol}/spot"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        return float(data["data"]["amount"])
+    except Exception as e:
+        print(f"Error fetching price for {symbol}: {e}")
+        return None
