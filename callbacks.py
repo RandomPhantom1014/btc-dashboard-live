@@ -1,56 +1,66 @@
-from dash import Output, Input, callback, dcc
-from utils.data import get_latest_price
-from utils.signals_logic import generate_signals_for_timeframe
+from dash import Output, Input
+from dash.dependencies import ALL
 from datetime import datetime, timedelta
+from utils.data import get_latest_price, get_indicator_data
+from utils.signals_logic import generate_signals_for_timeframe
 import pytz
 
-# Define your timeframes and movement targets
-TIMEFRAMES = {
-    "5m": {"minutes": 5, "target": 0.01},
-    "10m": {"minutes": 10, "target": 0.02},
-    "15m": {"minutes": 15, "target": 0.02},
-    "1h": {"minutes": 60, "target": 0.05},
-    "6h": {"minutes": 360, "target": 0.10}
-}
-
-@callback(
-    Output("xrp-price-text", "children"),
-    Input("interval-component", "n_intervals")
-)
-def update_price(n):
-    return f"${get_latest_price():,.4f}"
-
-# Create callbacks for each timeframe
-for timeframe_id, config in TIMEFRAMES.items():
-    @callback(
-        Output(f"{timeframe_id}-signal", "children"),
-        Output(f"{timeframe_id}-confidence", "children"),
-        Output(f"{timeframe_id}-signal", "className"),
-        Output(f"{timeframe_id}-timestamp", "children"),
-        Output(f"{timeframe_id}-countdown", "children"),
-        Input("interval-component", "n_intervals"),
-        prevent_initial_call="initial_duplicate"
+def register_callbacks(app):
+    @app.callback(
+        Output('xrp-price-text', 'children'),
+        Input('interval-component', 'n_intervals')
     )
-    def update_signal(n, timeframe_id=timeframe_id, config=config):
-        signal, confidence, strength = generate_signals_for_timeframe(
-            timeframe_id, config["minutes"], config["target"]
-        )
+    def update_xrp_price(n):
+        price = get_latest_price()
+        return f"XRP Price: ${price:.4f}"
 
-        # Get HST timestamp
-        hst_time = datetime.utcnow() - timedelta(hours=10)
-        timestamp = hst_time.strftime("%H:%M:%S")
+    @app.callback(
+        [Output(f"{interval}-signal", "children") for interval in ['5m', '10m', '15m', '1h', '6h']] +
+        [Output(f"{interval}-confidence", "children") for interval in ['5m', '10m', '15m', '1h', '6h']] +
+        [Output(f"{interval}-signal", "className") for interval in ['5m', '10m', '15m', '1h', '6h']] +
+        [Output(f"{interval}-timestamp", "children") for interval in ['5m', '10m', '15m', '1h', '6h']] +
+        [Output(f"{interval}-countdown", "children") for interval in ['5m', '10m', '15m', '1h', '6h']],
+        Input('interval-component', 'n_intervals')
+    )
+    def update_signals(n):
+        now = datetime.now(pytz.timezone('US/Hawaii'))
+        timestamp = now.strftime("%Y-%m-%d %H:%M:%S HST")
 
-        # Calculate expiration countdown
-        now = datetime.utcnow()
-        expiry_time = now + timedelta(minutes=config["minutes"])
-        countdown = str(timedelta(seconds=int((expiry_time - now).total_seconds())))
+        prices, rsi, macd, volume = get_indicator_data()
+        signals = generate_signals_for_timeframe(prices, rsi, macd, volume)
 
-        # Determine style class from strength
-        if strength == "strong":
-            color_class = "pill pill-strong"
-        elif strength == "moderate":
-            color_class = "pill pill-moderate"
-        else:
-            color_class = "pill pill-weak"
+        signal_texts = []
+        confidences = []
+        classes = []
+        timestamps = []
+        countdowns = []
 
-        return signal, f"{confidence}%", color_class, f"📅 {timestamp} HST", f"⏳ {countdown}"
+        countdown_map = {
+            '5m': 5,
+            '10m': 10,
+            '15m': 15,
+            '1h': 60,
+            '6h': 360
+        }
+
+        for interval in ['5m', '10m', '15m', '1h', '6h']:
+            data = signals.get(interval, {})
+            signal = data.get('signal', 'Wait')
+            confidence = data.get('confidence', 0)
+
+            signal_texts.append(signal)
+            confidences.append(f"{confidence}%")
+
+            if signal == "Go Long":
+                classes.append("signal-pill long")
+            elif signal == "Go Short":
+                classes.append("signal-pill short")
+            else:
+                classes.append("signal-pill wait")
+
+            timestamps.append(timestamp)
+            minutes = countdown_map.get(interval, 5)
+            expires_at = now + timedelta(minutes=minutes)
+            countdowns.append(expires_at.strftime("%H:%M:%S"))
+
+        return signal_texts + confidences + classes + timestamps + countdowns
