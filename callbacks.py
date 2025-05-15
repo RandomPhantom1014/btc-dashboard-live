@@ -1,58 +1,36 @@
-from dash import Output, Input
-from utils.data import fetch_live_data
-from utils.signals_logic import generate_signals
-import pytz
+import requests
+from dash import Input, Output
 from datetime import datetime, timedelta
+from utils.signals_logic import get_signal_for_interval
+from utils.data import get_coinbase_price
 
 def register_callbacks(app):
-    timeframes = ['5m', '10m', '15m', '1h', '6h']
-
-    # Live BTC Price
     @app.callback(
-        Output('btc-price-text', 'children'),
-        Input('interval-btc', 'n_intervals')
+        Output('xrp-price-text', 'children'),
+        [Input('interval-component', 'n_intervals')]
     )
-    def update_btc_price(n):
-        try:
-            df = fetch_live_data()
-            if df.empty or 'close' not in df.columns:
-                return "BTC Price: Unavailable"
-            return f"${df['close'].iloc[-1]:,.2f}"
-        except Exception as e:
-            return f"Error: {str(e)}"
+    def update_price(n):
+        price = get_coinbase_price("XRP-USD")
+        if price:
+            return f"XRP Price: ${price:.4f}"
+        else:
+            return "XRP Price: Unavailable"
 
-    # Signal Updates
-    for tf in timeframes:
+    for interval_id, minutes in [('5m', 5), ('10m', 10), ('15m', 15), ('1h', 60), ('6h', 360)]:
         @app.callback(
-            Output(f'{tf}-signal', 'children'),
-            Output(f'{tf}-confidence', 'children'),
-            Output(f'{tf}-signal', 'className'),
-            Output(f'{tf}-timestamp', 'children'),
-            Output(f'{tf}-countdown', 'children'),
-            Input('interval-slow', 'n_intervals'),
+            Output(f'signal-{interval_id}', 'children'),
+            [Input('interval-component', 'n_intervals')],
         )
-        def update_signal(n, tf=tf):
-            df = fetch_live_data()
-            if df.empty:
-                return "No Data", "", "pill neutral", "N/A", "N/A"
+        def update_signal(n, interval_id=interval_id, minutes=minutes):
+            now = datetime.utcnow()
+            end_time = now + timedelta(minutes=minutes)
+            price = get_coinbase_price("XRP-USD")
+            if price is None:
+                return ["No Data", "N/A", "N/A"]
 
-            result = generate_signals(df, tf)
-            now = datetime.now(pytz.timezone("Pacific/Honolulu"))
-            timestamp = now.strftime('%Y-%m-%d %I:%M:%S %p')
-
-            # Countdown logic
-            if tf.endswith('m'):
-                total_minutes = int(tf.replace('m', ''))
-            else:
-                total_minutes = int(tf.replace('h', '')) * 60
-            expiry_time = now + timedelta(minutes=total_minutes)
-            remaining = expiry_time - now
-            countdown = f"{remaining.seconds // 60}m {remaining.seconds % 60}s"
-
-            return (
-                result['signal'],
-                f"{result['confidence']}%",
-                f"pill {result['strength_class']}",
-                timestamp,
-                countdown
-            )
+            signal, confidence = get_signal_for_interval(minutes, "XRP-USD", price)
+            return [
+                f"{signal}",
+                f"Confidence: {confidence}%",
+                f"{now.strftime('%Y-%m-%d %H:%M:%S')} UTC | Expires in: {minutes}m 0s"
+            ]
