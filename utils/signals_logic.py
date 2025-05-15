@@ -1,28 +1,45 @@
 import numpy as np
+from datetime import datetime, timedelta
 
-def generate_signals_for_timeframe(prices, rsi_values, timeframe, is_short_term=True):
-    if len(prices) < 2 or len(prices) != len(rsi_values):
-        return "Wait", 0
+def generate_signals_for_timeframe(df, tf_minutes):
+    latest = df.iloc[-1]
+    price = latest['close']
+    rsi = latest.get('rsi', 50)
+    macd = latest.get('macd', 0)
+    signal_line = latest.get('signal', 0)
+    volume = latest.get('volume', 0)
 
-    recent_price = prices[-1]
-    previous_price = prices[-2]
-    price_change = recent_price - previous_price
+    signal = "Wait"
+    confidence = 50
 
-    recent_rsi = rsi_values[-1]
-
-    if is_short_term:
-        # Short-term signal logic: 1–2 cents
-        movement_required = 0.01 if abs(price_change) >= 0.01 else 0.02
+    # Short-term or long-term thresholds
+    if tf_minutes in [5, 10, 15]:
+        target_move = 0.01  # 1 cent
+        strong_move = 0.02  # 2 cents
+    elif tf_minutes in [60, 360]:
+        target_move = 0.05  # 5 cents
+        strong_move = 0.10  # 10 cents
     else:
-        # Long-term signal logic: 5–10 cents
-        movement_required = 0.05 if abs(price_change) >= 0.05 else 0.10
+        target_move = 0.01
+        strong_move = 0.02
 
-    # Signal confidence is proportional to how far RSI is from thresholds
-    if recent_rsi > 55 and price_change >= movement_required:
-        confidence = min(100, int((recent_rsi - 55) * 4 + (price_change / movement_required) * 50))
-        return "Go Long", confidence
-    elif recent_rsi < 45 and price_change <= -movement_required:
-        confidence = min(100, int((45 - recent_rsi) * 4 + (-price_change / movement_required) * 50))
-        return "Go Short", confidence
+    # Decision logic
+    if rsi > 55 and macd > signal_line:
+        signal = "Go Long"
+        confidence = 60 + (rsi - 55) * 2
+    elif rsi < 45 and macd < signal_line:
+        signal = "Go Short"
+        confidence = 60 + (45 - rsi) * 2
     else:
-        return "Wait", 0
+        signal = "Wait"
+        confidence = 40 + abs(rsi - 50)
+
+    # Cap confidence
+    confidence = max(10, min(99, round(confidence)))
+
+    return {
+        "signal": signal,
+        "confidence": f"{confidence}%",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "countdown": str(timedelta(minutes=tf_minutes))
+    }
