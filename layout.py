@@ -1,5 +1,5 @@
 from dash import html, dcc
-from components.header import render_header
+from header import render_header
 
 timeframes = ['5m', '10m', '15m', '1h', '6h']
 
