@@ -1,15 +1,11 @@
 import requests
 
 def get_latest_price():
-    url = "https://api.pro.coinbase.com/products/XRP-USD/ticker"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return float(response.json()["price"])
-    return "N/A"
-
-def get_indicator_data():
-    return {
-        "rsi": 52,
-        "macd": 0.001,
-        "volume": 1200000
-    }
+    try:
+        url = "https://api.coinbase.com/v2/prices/XRP-USD/spot"
+        response = requests.get(url, timeout=3)
+        response.raise_for_status()
+        data = response.json()
+        return float(data["data"]["amount"])
+    except Exception:
+        return None
