@@ -1,49 +1,45 @@
-from dash import callback, Output, Input
+from dash import Output, Input, callback
 from utils.data import get_latest_price, get_indicator_data
 from utils.signals_logic import generate_signals_for_timeframe
+from datetime import datetime, timedelta
+import pytz
 
-timeframes = {
-    '5m': 5,
-    '10m': 10,
-    '15m': 15,
-    '1h': 60,
-    '6h': 360
+TIMEFRAMES = {
+    "5m": 5,
+    "10m": 10,
+    "15m": 15,
+    "1h": 60,
+    "6h": 360
 }
 
-def register_callbacks(app):
-    # Price update callback
-    @callback(
-        Output("btc-price-text", "children"),
-        Input("interval-component", "n_intervals")
-    )
-    def update_price(_):
-        price = get_latest_price()
-        return f"XRP Price: ${price:.4f}"
+@callback(
+    Output("xrp-price-text", "children"),
+    Input("interval-component", "n_intervals")
+)
+def update_price(n):
+    price = get_latest_price()
+    return f"Live XRP Price: ${price:.4f}"
 
-    # Signal update callbacks
-    for tf_label, tf_minutes in timeframes.items():
-        @app.callback(
-            Output(f"{tf_label}-signal", "children"),
-            Output(f"{tf_label}-confidence", "children"),
-            Output(f"{tf_label}-signal", "className"),
-            Output(f"{tf_label}-timestamp", "children"),
-            Output(f"{tf_label}-countdown", "children"),
-            Input("interval-component", "n_intervals"),
-            prevent_initial_call="initial_duplicate"
-        )
-        def update_signal(_, tf_label=tf_label, tf_minutes=tf_minutes):
-            df = get_indicator_data()
-            signal_data = generate_signals_for_timeframe(df, tf_minutes)
-            signal = signal_data["signal"]
-            confidence = signal_data["confidence"]
-            timestamp = signal_data["timestamp"]
-            countdown = signal_data["countdown"]
+@callback(
+    [Output(f"{tf}-signal", "children"),
+     Output(f"{tf}-confidence", "children"),
+     Output(f"{tf}-signal", "className"),
+     Output(f"{tf}-timestamp", "children"),
+     Output(f"{tf}-countdown", "children")]
+    for tf in TIMEFRAMES
+)
+def update_signals(n):
+    df = get_indicator_data()
+    now = datetime.now(pytz.timezone("US/Hawaii"))
 
-            pill_color = {
-                "Go Long": "green-pill",
-                "Go Short": "red-pill",
-                "Wait": "gray-pill"
-            }.get(signal, "gray-pill")
+    results = []
+    for tf, minutes in TIMEFRAMES.items():
+        signal, confidence = generate_signals_for_timeframe(df, tf)
+        color = "green-pill" if signal == "Go Long" else "red-pill" if signal == "Go Short" else "gray-pill"
+        timestamp = now.strftime("%I:%M %p %Z")
+        countdown = f"{minutes}:00"
 
-            return signal, confidence, pill_color, timestamp, countdown
+        results.append((signal, f"{confidence}%", color, timestamp, countdown))
+
+    return results
 
