@@ -1,49 +1,74 @@
-from dash import Output, Input, html
+from dash import Output, Input, State, html
 from utils.data import get_live_price
 from utils.signals_logic import generate_short_term_signals, generate_long_term_signals
 from datetime import datetime
 import pytz
 
+# Helper to return pill color class
+def get_pill_class(strength):
+    if strength == "Strong":
+        return "strong-pill"
+    elif strength == "Medium":
+        return "medium-pill"
+    else:
+        return "weak-pill"
+
+# Core formatter
 def format_signal(label, signal, confidence, strength, last_update):
     hst_time = last_update.astimezone(pytz.timezone("US/Hawaii")).strftime('%I:%M:%S %p')
     countdown_id = f'countdown-{label.lower()}'
+    pill_class = f"signal-pill {get_pill_class(strength)}"
 
     return html.Div([
         html.Span(f"{label}: ", style={"fontWeight": "bold"}),
-        html.Span(signal, className="signal-pill"),
+        html.Span(signal, className=pill_class),
         html.Span(f"{confidence}% confidence", style={"marginLeft": "10px"}),
         html.Span(f"({strength})", style={"marginLeft": "10px"}),
-        html.Span(f"Last updated: {hst_time}", style={"marginLeft": "15px"}),
+        html.Span(f"Last updated: {hst_time}", style={"marginLeft": "15px", "fontStyle": "italic"}),
         html.Span(id=countdown_id, style={"marginLeft": "10px", "color": "orange"})
     ])
 
+# Attach these inside register_callbacks(app)
 def register_callbacks(app):
+
     @app.callback(Output("live-price", "children"), Input("interval-component", "n_intervals"))
     def update_price(n):
         price = get_live_price()
-        return f"Live XRP Price: ${price}"
+        return f"Live XRP Price: ${price:.4f}"
 
-    @app.callback(Output("signal-5m", "children"), Input("interval-component", "n_intervals"))
-    def update_5m(n):
-        price = get_live_price()
-        return format_signal("5M", *generate_short_term_signals(price, 56, 0.5, 1000000), datetime.now(pytz.utc))
+    # Signal generator factory
+    def make_signal_callback(signal_id, generator_func, rsi, macd, volume):
 
-    @app.callback(Output("signal-10m", "children"), Input("interval-component", "n_intervals"))
-    def update_10m(n):
-        price = get_live_price()
-        return format_signal("10M", *generate_short_term_signals(price, 51, 0.3, 950000), datetime.now(pytz.utc))
+        store_id = f'store-{signal_id}'
+        signal_div_id = f'signal-{signal_id}'
 
-    @app.callback(Output("signal-15m", "children"), Input("interval-component", "n_intervals"))
-    def update_15m(n):
-        price = get_live_price()
-        return format_signal("15M", *generate_short_term_signals(price, 49, -0.2, 870000), datetime.now(pytz.utc))
+        @app.callback(
+            Output(signal_div_id, "children"),
+            Input("interval-component", "n_intervals"),
+            State(store_id, "data"),
+            prevent_initial_call=False
+        )
+        def update_signal(n, stored_data):
+            price = get_live_price()
+            signal, confidence, strength = generator_func(price, rsi, macd, volume)
 
-    @app.callback(Output("signal-1h", "children"), Input("interval-component", "n_intervals"))
-    def update_1h(n):
-        price = get_live_price()
-        return format_signal("1H", *generate_long_term_signals(price, 61, 1.1, 2000000), datetime.now(pytz.utc))
+            now = datetime.now(pytz.utc)
 
-    @app.callback(Output("signal-6h", "children"), Input("interval-component", "n_intervals"))
-    def update_6h(n):
-        price = get_live_price()
-        return format_signal("6H", *generate_long_term_signals(price, 59, 0.6, 1800000), datetime.now(pytz.utc))
+            # If same signal as before, reuse last_update
+            if stored_data and stored_data.get("signal") == signal:
+                last_update = datetime.fromisoformat(stored_data["last_update"])
+            else:
+                last_update = now
+
+            # Save update time and signal
+            app.callback_map[signal_div_id]['inputs'].append(
+                State(store_id, 'data')
+            )
+            return format_signal(signal_id.upper(), signal, confidence, strength, last_update)
+
+    # Create all callbacks
+    make_signal_callback("5m", generate_short_term_signals, 56, 0.5, 1000000)
+    make_signal_callback("10m", generate_short_term_signals, 50, 0.2, 950000)
+    make_signal_callback("15m", generate_short_term_signals, 48, -0.2, 870000)
+    make_signal_callback("1h", generate_long_term_signals, 61, 1.1, 2000000)
+    make_signal_callback("6h", generate_long_term_signals, 59, 0.6, 1800000)
