@@ -35,8 +35,8 @@ app.layout = html.Div([
                 });
             }
 
-            updateCountdowns(); // Run once on load
-            setInterval(updateCountdowns, 1000); // Repeat every second
+            updateCountdowns(); // Run once immediately
+            setInterval(updateCountdowns, 1000); // Then every second
         }
 
         if (document.readyState === "complete") {
