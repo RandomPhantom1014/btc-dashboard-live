@@ -1,10 +1,19 @@
-from dash import html
+from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 def serve_layout():
     return html.Div([
         html.H2("XRP Signal Dashboard", className="dashboard-title"),
         html.H4(id='live-price', className="live-price"),
+
+        # Stores to preserve last signal state
+        html.Div([
+            dcc.Store(id='store-5m'),
+            dcc.Store(id='store-10m'),
+            dcc.Store(id='store-15m'),
+            dcc.Store(id='store-1h'),
+            dcc.Store(id='store-6h'),
+        ]),
 
         dbc.Container([
             dbc.Row([
