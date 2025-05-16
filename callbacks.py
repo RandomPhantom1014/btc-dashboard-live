@@ -1,70 +1,55 @@
-from dash import Output, Input, callback
-from utils.data import get_latest_price, get_indicator_data
-from utils.signals_logic import generate_signals_for_timeframe
-from datetime import datetime, timedelta
+from dash import Output, Input, html
+from utils.data import get_live_price
+from utils.signals_logic import generate_short_term_signals, generate_long_term_signals
+from datetime import datetime
 import pytz
 
-TIMEFRAMES = {
-    "5m": 5,
-    "10m": 10,
-    "15m": 15,
-    "1h": 60,
-    "6h": 360
-}
+def format_signal_output(label, signal, confidence, strength, last_update):
+    hst_time = last_update.astimezone(pytz.timezone("US/Hawaii")).strftime('%I:%M:%S %p')
+    countdown_id = f'countdown-{label.lower()}'
 
-@callback(
-    Output("xrp-price-text", "children"),
-    Input("interval-component", "n_intervals")
-)
-def update_price(n):
-    price = get_latest_price()
-    return f"Live XRP Price: ${price:.4f}"
+    return html.Div([
+        html.Div([
+            html.Span(f"{label}: ", style={"fontWeight": "bold"}),
+            html.Span(signal or "No Signal", className="signal-pill"),
+            html.Span(f"{confidence}% confidence", style={"marginLeft": "10px"}),
+            html.Span(f"({strength})", style={"marginLeft": "10px"}),
+            html.Span(f"Last updated: {hst_time}", style={"marginLeft": "15px", "fontStyle": "italic"}),
+            html.Span(id=countdown_id, style={"marginLeft": "15px", "color": "orange"}),
+        ])
+    ])
 
-# Manually flatten the Outputs
-@callback(
-    [
-        Output("5m-signal", "children"),
-        Output("5m-confidence", "children"),
-        Output("5m-signal", "className"),
-        Output("5m-timestamp", "children"),
-        Output("5m-countdown", "children"),
+@app.callback(Output("signal-5m", "children"), Input("interval-component", "n_intervals"))
+def update_signal_5m(n):
+    price = get_live_price()
+    rsi, macd, volume = 52, 1, 1200000  # Replace with real logic
+    signal, confidence, strength = generate_short_term_signals(price, rsi, macd, volume)
+    return format_signal_output("5M", signal, confidence, strength, datetime.now(pytz.utc))
 
-        Output("10m-signal", "children"),
-        Output("10m-confidence", "children"),
-        Output("10m-signal", "className"),
-        Output("10m-timestamp", "children"),
-        Output("10m-countdown", "children"),
+@app.callback(Output("signal-10m", "children"), Input("interval-component", "n_intervals"))
+def update_signal_10m(n):
+    price = get_live_price()
+    rsi, macd, volume = 50, 0.5, 1000000
+    signal, confidence, strength = generate_short_term_signals(price, rsi, macd, volume)
+    return format_signal_output("10M", signal, confidence, strength, datetime.now(pytz.utc))
 
-        Output("15m-signal", "children"),
-        Output("15m-confidence", "children"),
-        Output("15m-signal", "className"),
-        Output("15m-timestamp", "children"),
-        Output("15m-countdown", "children"),
+@app.callback(Output("signal-15m", "children"), Input("interval-component", "n_intervals"))
+def update_signal_15m(n):
+    price = get_live_price()
+    rsi, macd, volume = 48, -0.5, 950000
+    signal, confidence, strength = generate_short_term_signals(price, rsi, macd, volume)
+    return format_signal_output("15M", signal, confidence, strength, datetime.now(pytz.utc))
 
-        Output("1h-signal", "children"),
-        Output("1h-confidence", "children"),
-        Output("1h-signal", "className"),
-        Output("1h-timestamp", "children"),
-        Output("1h-countdown", "children"),
+@app.callback(Output("signal-1h", "children"), Input("interval-component", "n_intervals"))
+def update_signal_1h(n):
+    price = get_live_price()
+    rsi, macd, volume = 61, 1.2, 2200000
+    signal, confidence, strength = generate_long_term_signals(price, rsi, macd, volume)
+    return format_signal_output("1H", signal, confidence, strength, datetime.now(pytz.utc))
 
-        Output("6h-signal", "children"),
-        Output("6h-confidence", "children"),
-        Output("6h-signal", "className"),
-        Output("6h-timestamp", "children"),
-        Output("6h-countdown", "children"),
-    ],
-    Input("interval-component", "n_intervals")
-)
-def update_signals(n):
-    df = get_indicator_data()
-    now = datetime.now(pytz.timezone("US/Hawaii"))
-
-    results = []
-    for tf, minutes in TIMEFRAMES.items():
-        signal, confidence = generate_signals_for_timeframe(df, tf)
-        color = "green-pill" if signal == "Go Long" else "red-pill" if signal == "Go Short" else "gray-pill"
-        timestamp = now.strftime("%I:%M %p %Z")
-        countdown = f"{minutes}:00"
-        results.extend([signal, f"{confidence}%", color, timestamp, countdown])
-
-    return results
+@app.callback(Output("signal-6h", "children"), Input("interval-component", "n_intervals"))
+def update_signal_6h(n):
+    price = get_live_price()
+    rsi, macd, volume = 58, 0.9, 2100000
+    signal, confidence, strength = generate_long_term_signals(price, rsi, macd, volume)
+    return format_signal_output("6H", signal, confidence, strength, datetime.now(pytz.utc))
