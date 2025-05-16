@@ -5,7 +5,6 @@ from datetime import datetime
 import pytz
 import json
 
-# Pill color logic
 def get_pill_class(strength):
     if strength == "Strong":
         return "strong-pill"
@@ -14,22 +13,34 @@ def get_pill_class(strength):
     else:
         return "weak-pill"
 
-# Signal formatting with timestamp and style
 def format_signal(label, signal, confidence, strength, last_update):
     hst_time = last_update.astimezone(pytz.timezone("US/Hawaii")).strftime('%I:%M:%S %p')
     pill_class = f"signal-pill {get_pill_class(strength)}"
     countdown_id = f"countdown-{label.lower()}"
+
+    # Define how long each signal lasts in seconds
+    duration_map = {
+        "5M": 300,
+        "10M": 600,
+        "15M": 900,
+        "1H": 3600,
+        "6H": 21600
+    }
+    duration_seconds = duration_map.get(label.upper(), 300)
 
     return html.Div([
         html.Span(f"{label}: ", style={"fontWeight": "bold"}),
         html.Span(signal, className=pill_class),
         html.Span(f" {confidence}% confidence", style={"marginLeft": "10px"}),
         html.Span(f"({strength})", style={"marginLeft": "10px"}),
-        html.Span(f"Last updated: {hst_time}", style={"marginLeft": "15px"}),
-        html.Span(id=countdown_id, style={"marginLeft": "10px", "color": "orange"}),
+        html.Span(f"Last updated: {hst_time}", style={"marginLeft": "15px", "fontStyle": "italic"}),
+        html.Span("counting...", id=countdown_id, **{
+            "data-time": last_update.isoformat(),
+            "data-duration": duration_seconds,
+            "style": {"marginLeft": "10px", "color": "orange"}
+        })
     ])
 
-# Register all signal callbacks
 def register_callbacks(app):
     @app.callback(Output("live-price", "children"), Input("interval-component", "n_intervals"))
     def update_price(n):
@@ -51,7 +62,6 @@ def register_callbacks(app):
             signal, confidence, strength = generator(price, rsi, macd, volume)
             now = datetime.now(pytz.utc)
 
-            # If signal unchanged, reuse stored time
             if stored:
                 previous = json.loads(stored)
                 if previous.get("signal") == signal:
@@ -68,9 +78,11 @@ def register_callbacks(app):
 
             return format_signal(signal_id.upper(), signal, confidence, strength, last_update), new_data
 
-    # Attach all timeframes
+    # Short-term
     create_signal_callback("5m", generate_short_term_signals, 56, 0.5, 1000000)
     create_signal_callback("10m", generate_short_term_signals, 50, 0.2, 950000)
     create_signal_callback("15m", generate_short_term_signals, 48, -0.2, 870000)
+
+    # Long-term
     create_signal_callback("1h", generate_long_term_signals, 61, 1.1, 2000000)
     create_signal_callback("6h", generate_long_term_signals, 59, 0.6, 1800000)
