@@ -1,16 +1,5 @@
-from dash import Dash, html, dcc
-import dash_bootstrap_components as dbc
-from layout import serve_layout
-from callbacks import register_callbacks
-
-app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
-server = app.server
-
-app.layout = html.Div([
-    serve_layout(),
-    dcc.Interval(id='interval-component', interval=5000, n_intervals=0),
-
-    html.Script("""
+html.Script("""
+    function startCountdowns() {
         function updateCountdowns() {
             const now = new Date();
             document.querySelectorAll("[id^='countdown-']").forEach(el => {
@@ -34,8 +23,13 @@ app.layout = html.Div([
             });
         }
 
-        setInterval(updateCountdowns, 1000);
-    """)
-])
+        updateCountdowns(); // run once initially
+        setInterval(updateCountdowns, 1000); // update every second
+    }
 
-register_callbacks(app)
+    if (document.readyState === "complete") {
+        startCountdowns();
+    } else {
+        window.addEventListener("load", startCountdowns);
+    }
+""")
