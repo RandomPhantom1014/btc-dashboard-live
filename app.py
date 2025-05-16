@@ -1,6 +1,7 @@
 from dash import Dash, html, dcc
-from layout import serve_layout
 import dash_bootstrap_components as dbc
+from layout import serve_layout
+from callbacks import register_callbacks
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 server = app.server
@@ -36,3 +37,6 @@ app.layout = html.Div([
         setInterval(updateCountdowns, 1000);
     ''')
 ])
+
+# ✅ Activate signal callbacks
+register_callbacks(app)
