@@ -1,45 +1,22 @@
-import numpy as np
-from datetime import datetime, timedelta
+def generate_short_term_signals(price, rsi, macd, volume):
+    if price == 0.0:
+        return None, 0, 'Weak'
 
-def generate_signals_for_timeframe(df, tf_minutes):
-    latest = df.iloc[-1]
-    price = latest['close']
-    rsi = latest.get('rsi', 50)
-    macd = latest.get('macd', 0)
-    signal_line = latest.get('signal', 0)
-    volume = latest.get('volume', 0)
-
-    signal = "Wait"
-    confidence = 50
-
-    # Short-term or long-term thresholds
-    if tf_minutes in [5, 10, 15]:
-        target_move = 0.01  # 1 cent
-        strong_move = 0.02  # 2 cents
-    elif tf_minutes in [60, 360]:
-        target_move = 0.05  # 5 cents
-        strong_move = 0.10  # 10 cents
+    if rsi > 55 and macd > 0 and volume > 1000000:
+        return 'Go Long', 85, 'Strong'
+    elif rsi < 45 and macd < 0:
+        return 'Go Short', 80, 'Medium'
     else:
-        target_move = 0.01
-        strong_move = 0.02
+        return 'Wait', 60, 'Weak'
 
-    # Decision logic
-    if rsi > 55 and macd > signal_line:
-        signal = "Go Long"
-        confidence = 60 + (rsi - 55) * 2
-    elif rsi < 45 and macd < signal_line:
-        signal = "Go Short"
-        confidence = 60 + (45 - rsi) * 2
+
+def generate_long_term_signals(price, rsi, macd, volume):
+    if price == 0.0:
+        return None, 0, 'Weak'
+
+    if rsi > 60 and macd > 0 and volume > 2000000:
+        return 'Go Long', 90, 'Strong'
+    elif rsi < 40 and macd < 0:
+        return 'Go Short', 85, 'Medium'
     else:
-        signal = "Wait"
-        confidence = 40 + abs(rsi - 50)
-
-    # Cap confidence
-    confidence = max(10, min(99, round(confidence)))
-
-    return {
-        "signal": signal,
-        "confidence": f"{confidence}%",
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "countdown": str(timedelta(minutes=tf_minutes))
-    }
+        return 'Wait', 65, 'Weak'
