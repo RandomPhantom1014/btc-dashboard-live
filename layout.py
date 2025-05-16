@@ -10,17 +10,16 @@ def serve_layout():
             dbc.Row([
                 dbc.Col([
                     html.H5("Short-Term Signals", className="signal-section-title"),
-                    html.Div(id='signal-5m', className='signal-card'),
-                    html.Div(id='signal-10m', className='signal-card'),
-                    html.Div(id='signal-15m', className='signal-card'),
+                    html.Div(id='signal-5m'),
+                    html.Div(id='signal-10m'),
+                    html.Div(id='signal-15m'),
                 ], width=6),
 
                 dbc.Col([
                     html.H5("Long-Term Signals", className="signal-section-title"),
-                    html.Div(id='signal-1h', className='signal-card'),
-                    html.Div(id='signal-6h', className='signal-card'),
+                    html.Div(id='signal-1h'),
+                    html.Div(id='signal-6h'),
                 ], width=6),
-            ], className='mt-4'),
+            ])
         ])
     ])
-
