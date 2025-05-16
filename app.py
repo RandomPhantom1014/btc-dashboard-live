@@ -7,6 +7,7 @@ server = app.server
 
 app.layout = html.Div([
     serve_layout(),
+    dcc.Interval(id='interval-component', interval=5000, n_intervals=0),
 
     html.Script('''
         function updateCountdowns() {
