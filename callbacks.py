@@ -4,6 +4,7 @@ from utils.signals_logic import generate_short_term_signals, generate_long_term_
 from datetime import datetime
 import pytz
 import json
+from logger import log_trade  # ✅ Logging imported
 
 def get_pill_class(strength):
     if strength == "Strong":
@@ -18,7 +19,6 @@ def format_signal(label, signal, confidence, strength, last_update):
     pill_class = f"signal-pill {get_pill_class(strength)}"
     countdown_id = f"countdown-{label.lower()}"
 
-    # Define how long each signal lasts in seconds
     duration_map = {
         "5M": 300,
         "10M": 600,
@@ -70,6 +70,18 @@ def register_callbacks(app):
                     last_update = now
             else:
                 last_update = now
+
+            # ✅ Log the dashboard signal
+            log_trade(
+                signal_timeframe=signal_id.upper(),
+                action=signal,
+                confidence=confidence,
+                strength=strength,
+                price=price,
+                status="Dashboard Displayed",
+                reason="N/A",
+                amount="N/A"
+            )
 
             new_data = json.dumps({
                 "signal": signal,
