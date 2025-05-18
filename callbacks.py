@@ -94,4 +94,23 @@ def register_callbacks(app):
                 confidence=confidence,
                 strength=strength,
                 price=price,
-                status="Dashboard Display
+                status="Dashboard Displayed",
+                reason="N/A",
+                amount="N/A"
+            )
+
+            new_data = json.dumps({
+                "signal": signal,
+                "last_update": last_update.isoformat()
+            })
+
+            return format_signal(signal_id.upper(), signal, confidence, strength, last_update), new_data
+
+    # Short-term
+    create_signal_callback("5m", generate_short_term_signals, 56, 0.5, 1000000)
+    create_signal_callback("10m", generate_short_term_signals, 50, 0.2, 950000)
+    create_signal_callback("15m", generate_short_term_signals, 48, -0.2, 870000)
+
+    # Long-term
+    create_signal_callback("1h", generate_long_term_signals, 61, 1.1, 2000000)
+    create_signal_callback("6h", generate_long_term_signals, 59, 0.6, 1800000)
