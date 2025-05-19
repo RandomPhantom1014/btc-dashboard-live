@@ -4,7 +4,7 @@ from utils.signals_logic import generate_short_term_signals, generate_long_term_
 from datetime import datetime
 import pytz
 import json
-from logger import log_trade
+from logger import log_trade  # Make sure this comes from root-level logger.py
 
 def get_pill_class(strength):
     if strength == "Strong":
